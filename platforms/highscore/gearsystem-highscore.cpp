@@ -8,7 +8,7 @@ struct _GearsystemHsCore
 
   GearsystemCore *core;
 
-  gpointer video_buffer;
+  HsSoftwareContext *context;
 
   char *save_location;
 };
@@ -29,6 +29,7 @@ gearsystem_hs_core_start (HsCore     *core,
                           GError     **error)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
+  GS_RuntimeInfo runtime_info;
 
   g_set_str (&self->save_location, save_location);
 
@@ -38,11 +39,20 @@ gearsystem_hs_core_start (HsCore     *core,
     return FALSE;
   }
 
-  self->video_buffer =
-    hs_core_request_framebuffer (core,
-                                 GS_RESOLUTION_MAX_WIDTH,
-                                 GS_RESOLUTION_MAX_HEIGHT,
-                                 HS_PIXEL_FORMAT_RGB888);
+  self->context = hs_core_create_software_context (core,
+                                                   GS_RESOLUTION_MAX_WIDTH,
+                                                   GS_RESOLUTION_MAX_HEIGHT,
+                                                   HS_PIXEL_FORMAT_RGB888);
+
+  self->core->GetRuntimeInfo (runtime_info);
+
+  int width = runtime_info.screen_width;
+  int height = runtime_info.screen_height;
+  HsRectangle area = HS_RECTANGLE_INIT (0, 0, width, height);
+
+  hs_software_context_set_area (self->context, &area);
+  hs_software_context_set_row_stride (self->context,
+                                      width * hs_pixel_format_get_pixel_size (HS_PIXEL_FORMAT_RGB888));
 
   return TRUE;
 }
@@ -59,10 +69,11 @@ static void
 gearsystem_hs_core_run_frame (HsCore *core)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
+  u8 *video_buffer = (u8 *) hs_software_context_get_framebuffer (self->context);
   int16_t audio_buffer[GS_AUDIO_BUFFER_SIZE];
   int n_audio_samples;
 
-  self->core->RunToVBlank ((u8 *) self->video_buffer, audio_buffer, &n_audio_samples);
+  self->core->RunToVBlank (video_buffer, audio_buffer, &n_audio_samples);
 
   hs_core_play_samples (core, audio_buffer, n_audio_samples);
 }
@@ -73,6 +84,7 @@ gearsystem_hs_core_stop (HsCore *core)
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
   g_clear_pointer (&self->save_location, g_free);
+  g_clear_object (&self->context);
 }
 
 static gboolean
@@ -176,38 +188,10 @@ gearsystem_hs_core_get_aspect_ratio (HsCore *core)
   return (double) width / (double) height;
 }
 
-static gboolean
-gearsystem_hs_core_get_screen_rect (HsCore      *core,
-                                    HsRectangle *rect)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-  GS_RuntimeInfo runtime_info;
-
-  self->core->GetRuntimeInfo (runtime_info);
-
-  int width = runtime_info.screen_width;
-  int height = runtime_info.screen_height;
-
-  hs_rectangle_init (rect, 0, 0, width, height);
-
-  return TRUE;
-}
-
 static double
 gearsystem_hs_core_get_sample_rate (HsCore *core)
 {
   return 44100;
-}
-
-static size_t
-gearsystem_hs_core_get_row_stride (HsCore *core)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-  GS_RuntimeInfo runtime_info;
-
-  self->core->GetRuntimeInfo (runtime_info);
-
-  return runtime_info.screen_width * hs_pixel_format_get_pixel_size (HS_PIXEL_FORMAT_RGB888);
 }
 
 static void
@@ -240,8 +224,6 @@ gearsystem_hs_core_class_init (GearsystemHsCoreClass *klass)
 
   core_class->get_frame_rate = gearsystem_hs_core_get_frame_rate;
   core_class->get_aspect_ratio = gearsystem_hs_core_get_aspect_ratio;
-  core_class->get_screen_rect = gearsystem_hs_core_get_screen_rect;
-  core_class->get_row_stride = gearsystem_hs_core_get_row_stride;
 
   core_class->get_sample_rate = gearsystem_hs_core_get_sample_rate;
 }
