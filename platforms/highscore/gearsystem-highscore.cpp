@@ -113,7 +113,7 @@ gearsystem_hs_core_save_state (HsCore          *core,
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
   std::ofstream state_file (path, std::ofstream::out | std::ofstream::binary);
   size_t size;
-  GError *error;
+  GError *error = NULL;
 
   if (!state_file.is_open ()) {
     g_set_error (&error, HS_CORE_ERROR, HS_CORE_ERROR_IO, "Failed to open state file");
@@ -140,7 +140,7 @@ gearsystem_hs_core_load_state (HsCore          *core,
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
   std::ifstream state_file (path, std::ifstream::in | std::ifstream::binary);
-  GError *error;
+  GError *error = NULL;
 
   if (!state_file.is_open ()) {
     g_set_error (&error, HS_CORE_ERROR, HS_CORE_ERROR_IO, "Failed to open state file");
