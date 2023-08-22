@@ -105,59 +105,59 @@ gearsystem_hs_core_save_data (HsCore  *core,
                                   G_FILE_CREATE_NONE, NULL, NULL, error);
 }
 
-static gboolean
-gearsystem_hs_core_save_state (HsCore      *core,
-                               const char  *path,
-                               GError     **error)
+static void
+gearsystem_hs_core_save_state (HsCore          *core,
+                               const char      *path,
+                               HsStateCallback  callback)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
   std::ofstream state_file (path, std::ofstream::out | std::ofstream::binary);
   size_t size;
+  GError *error;
 
   if (!state_file.is_open ()) {
-    g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_IO, "Failed to open state file");
-
-    return FALSE;
+    g_set_error (&error, HS_CORE_ERROR, HS_CORE_ERROR_IO, "Failed to open state file");
+    callback (core, &error);
+    return;
   }
 
   if (!self->core->SaveState (state_file, size)) {
     state_file.close ();
 
-    g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_INTERNAL, "Failed to save state");
-
-    return FALSE;
+    g_set_error (&error, HS_CORE_ERROR, HS_CORE_ERROR_INTERNAL, "Failed to save state");
+    callback (core, &error);
+    return;
   }
 
   state_file.close ();
-
-  return TRUE;
+  callback (core, NULL);
 }
 
-static gboolean
-gearsystem_hs_core_load_state (HsCore      *core,
-                               const char  *path,
-                               GError     **error)
+static void
+gearsystem_hs_core_load_state (HsCore          *core,
+                               const char      *path,
+                               HsStateCallback  callback)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
   std::ifstream state_file (path, std::ifstream::in | std::ifstream::binary);
+  GError *error;
 
   if (!state_file.is_open ()) {
-    g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_IO, "Failed to open state file");
-
-    return FALSE;
+    g_set_error (&error, HS_CORE_ERROR, HS_CORE_ERROR_IO, "Failed to open state file");
+    callback (core, &error);
+    return;
   }
 
   if (!self->core->LoadState (state_file)) {
     state_file.close ();
 
-    g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_INTERNAL, "Failed to load state");
-
-    return FALSE;
+    g_set_error (&error, HS_CORE_ERROR, HS_CORE_ERROR_INTERNAL, "Failed to load state");
+    callback (core, &error);
+    return;
   }
 
   state_file.close ();
-
-  return TRUE;
+  callback (core, NULL);
 }
 
 static double
