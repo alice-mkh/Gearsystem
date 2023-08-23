@@ -259,22 +259,22 @@ gearsystem_game_gear_core_init (HsGameGearCoreInterface *iface)
 }
 
 static void
-gearsystem_master_system_core_button_pressed (HsMasterSystemCore *core, uint port, HsMasterSystemButton button)
+gearsystem_master_system_core_button_pressed (HsMasterSystemCore *core, uint player, HsMasterSystemButton button)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
-  if (port == 0)
+  if (player == 0)
     self->core->KeyPressed (Joypad_1, (GS_Keys) button);
   else
     self->core->KeyPressed (Joypad_2, (GS_Keys) button);
 }
 
 static void
-gearsystem_master_system_core_button_released (HsMasterSystemCore *core, uint port, HsMasterSystemButton button)
+gearsystem_master_system_core_button_released (HsMasterSystemCore *core, uint player, HsMasterSystemButton button)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
-  if (port == 0)
+  if (player == 0)
     self->core->KeyReleased (Joypad_1, (GS_Keys) button);
   else
     self->core->KeyReleased (Joypad_2, (GS_Keys) button);
@@ -306,22 +306,22 @@ gearsystem_master_system_core_init (HsMasterSystemCoreInterface *iface)
 }
 
 static void
-gearsystem_sg1000_core_button_pressed (HsSg1000Core *core, uint port, HsSg1000Button button)
+gearsystem_sg1000_core_button_pressed (HsSg1000Core *core, uint player, HsSg1000Button button)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
-  if (port == 0)
+  if (player == 0)
     self->core->KeyPressed (Joypad_1, (GS_Keys) button);
   else
     self->core->KeyPressed (Joypad_2, (GS_Keys) button);
 }
 
 static void
-gearsystem_sg1000_core_button_released (HsSg1000Core *core, uint port, HsSg1000Button button)
+gearsystem_sg1000_core_button_released (HsSg1000Core *core, uint player, HsSg1000Button button)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
-  if (port == 0)
+  if (player == 0)
     self->core->KeyReleased (Joypad_1, (GS_Keys) button);
   else
     self->core->KeyReleased (Joypad_2, (GS_Keys) button);
