@@ -8,6 +8,6 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE (GearsystemHsCore, gearsystem_hs_core, GEARSYSTEM, HS_CORE, HsCore)
 
-GType hs_get_core_type (void);
+G_MODULE_EXPORT GType hs_get_core_type (void);
 
 G_END_DECLS

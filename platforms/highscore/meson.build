@@ -44,10 +44,12 @@ cores_dir = get_option('libdir') / 'highscore' / 'cores'
 
 gearsystem_c_args = [
   '-DGEARSYSTEM_DISABLE_DISASSEMBLER',
+  '-fvisibility=hidden',
 ]
 
 gearsystem_cpp_args = [
   '-DGEARSYSTEM_DISABLE_DISASSEMBLER',
+  '-fvisibility=hidden',
 ]
 
 gearsystem_include_dirs = [
