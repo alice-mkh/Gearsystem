@@ -23,10 +23,10 @@ G_DEFINE_FINAL_TYPE_WITH_CODE (GearsystemHsCore, gearsystem_hs_core, HS_TYPE_COR
                                G_IMPLEMENT_INTERFACE (HS_TYPE_SG1000_CORE, gearsystem_sg1000_core_init));
 
 static gboolean
-gearsystem_hs_core_start (HsCore     *core,
-                          const char  *rom_path,
-                          const char  *save_location,
-                          GError     **error)
+gearsystem_hs_core_load_rom (HsCore     *core,
+                             const char  *rom_path,
+                             const char  *save_location,
+                             GError     **error)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
   GS_RuntimeInfo runtime_info;
@@ -212,7 +212,7 @@ gearsystem_hs_core_class_init (GearsystemHsCoreClass *klass)
 
   object_class->finalize = gearsystem_hs_core_finalize;
 
-  core_class->start = gearsystem_hs_core_start;
+  core_class->load_rom = gearsystem_hs_core_load_rom;
   core_class->reset = gearsystem_hs_core_reset;
   core_class->run_frame = gearsystem_hs_core_run_frame;
   core_class->stop = gearsystem_hs_core_stop;
