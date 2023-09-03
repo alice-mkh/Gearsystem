@@ -66,6 +66,70 @@ gearsystem_hs_core_reset (HsCore *core)
 }
 
 static void
+gearsystem_hs_core_poll_input (HsCore *core, HsInputState *input_state)
+{
+  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
+  HsPlatform platform = hs_core_get_platform (core);
+
+  if (platform == HS_PLATFORM_GAME_GEAR) {
+    uint32_t buttons = input_state->game_gear.buttons;
+
+    for (int btn = 0; btn < HS_GAME_GEAR_N_BUTTONS; btn++) {
+      if (buttons & 1 << btn)
+        self->core->KeyPressed (Joypad_1, (GS_Keys) btn);
+      else
+        self->core->KeyReleased (Joypad_1, (GS_Keys) btn);
+    }
+
+    return;
+  }
+
+  if (platform == HS_PLATFORM_MASTER_SYSTEM) {
+    for (int player = 0; player < HS_MASTER_SYSTEM_MAX_PLAYERS; player++) {
+      uint32_t buttons = input_state->master_system.pad_buttons[player];
+      GS_Joypads joypad = (player == 0) ? Joypad_1 : Joypad_2;
+
+      for (int btn = 0; btn < HS_MASTER_SYSTEM_N_BUTTONS; btn++) {
+        if (buttons & 1 << btn)
+          self->core->KeyPressed (joypad, (GS_Keys) btn);
+        else
+          self->core->KeyReleased (joypad, (GS_Keys) btn);
+      }
+    }
+
+    if (input_state->master_system.pause_button)
+      self->core->KeyPressed (Joypad_1, Key_Start);
+    else
+      self->core->KeyReleased (Joypad_1, Key_Start);
+
+    return;
+  }
+
+  if (platform == HS_PLATFORM_SG1000) {
+    for (int player = 0; player < HS_SG1000_MAX_PLAYERS; player++) {
+      uint32_t buttons = input_state->sg1000.pad_buttons[player];
+      GS_Joypads joypad = (player == 0) ? Joypad_1 : Joypad_2;
+
+      for (int btn = 0; btn < HS_SG1000_N_BUTTONS; btn++) {
+        if (buttons & 1 << btn)
+          self->core->KeyPressed (joypad, (GS_Keys) btn);
+        else
+          self->core->KeyReleased (joypad, (GS_Keys) btn);
+      }
+    }
+
+    if (input_state->sg1000.pause_button)
+      self->core->KeyPressed (Joypad_1, Key_Start);
+    else
+      self->core->KeyReleased (Joypad_1, Key_Start);
+
+    return;
+  }
+
+  g_assert_not_reached ();
+}
+
+static void
 gearsystem_hs_core_run_frame (HsCore *core)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
@@ -214,6 +278,7 @@ gearsystem_hs_core_class_init (GearsystemHsCoreClass *klass)
 
   core_class->load_rom = gearsystem_hs_core_load_rom;
   core_class->reset = gearsystem_hs_core_reset;
+  core_class->poll_input = gearsystem_hs_core_poll_input;
   core_class->run_frame = gearsystem_hs_core_run_frame;
   core_class->stop = gearsystem_hs_core_stop;
 
@@ -236,120 +301,18 @@ gearsystem_hs_core_init (GearsystemHsCore *self)
 }
 
 static void
-gearsystem_game_gear_core_button_pressed (HsGameGearCore *core, HsGameGearButton button)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  self->core->KeyPressed (Joypad_1, (GS_Keys) button);
-}
-
-static void
-gearsystem_game_gear_core_button_released (HsGameGearCore *core, HsGameGearButton button)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  self->core->KeyReleased (Joypad_1, (GS_Keys) button);
-}
-
-static void
 gearsystem_game_gear_core_init (HsGameGearCoreInterface *iface)
 {
-  iface->button_pressed = gearsystem_game_gear_core_button_pressed;
-  iface->button_released = gearsystem_game_gear_core_button_released;
-}
-
-static void
-gearsystem_master_system_core_button_pressed (HsMasterSystemCore *core, uint player, HsMasterSystemButton button)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  if (player == 0)
-    self->core->KeyPressed (Joypad_1, (GS_Keys) button);
-  else
-    self->core->KeyPressed (Joypad_2, (GS_Keys) button);
-}
-
-static void
-gearsystem_master_system_core_button_released (HsMasterSystemCore *core, uint player, HsMasterSystemButton button)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  if (player == 0)
-    self->core->KeyReleased (Joypad_1, (GS_Keys) button);
-  else
-    self->core->KeyReleased (Joypad_2, (GS_Keys) button);
-}
-
-static void
-gearsystem_master_system_core_pause_pressed (HsMasterSystemCore *core)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  self->core->KeyPressed (Joypad_1, Key_Start);
-}
-
-static void
-gearsystem_master_system_core_pause_released (HsMasterSystemCore *core)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  self->core->KeyReleased (Joypad_1, Key_Start);
 }
 
 static void
 gearsystem_master_system_core_init (HsMasterSystemCoreInterface *iface)
 {
-  iface->button_pressed = gearsystem_master_system_core_button_pressed;
-  iface->button_released = gearsystem_master_system_core_button_released;
-  iface->pause_pressed = gearsystem_master_system_core_pause_pressed;
-  iface->pause_released = gearsystem_master_system_core_pause_released;
-}
-
-static void
-gearsystem_sg1000_core_button_pressed (HsSg1000Core *core, uint player, HsSg1000Button button)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  if (player == 0)
-    self->core->KeyPressed (Joypad_1, (GS_Keys) button);
-  else
-    self->core->KeyPressed (Joypad_2, (GS_Keys) button);
-}
-
-static void
-gearsystem_sg1000_core_button_released (HsSg1000Core *core, uint player, HsSg1000Button button)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  if (player == 0)
-    self->core->KeyReleased (Joypad_1, (GS_Keys) button);
-  else
-    self->core->KeyReleased (Joypad_2, (GS_Keys) button);
-}
-
-static void
-gearsystem_sg1000_core_pause_pressed (HsSg1000Core *core)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  self->core->KeyPressed (Joypad_1, Key_Start);
-}
-
-static void
-gearsystem_sg1000_core_pause_released (HsSg1000Core *core)
-{
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-
-  self->core->KeyReleased (Joypad_1, Key_Start);
 }
 
 static void
 gearsystem_sg1000_core_init (HsSg1000CoreInterface *iface)
 {
-  iface->button_pressed = gearsystem_sg1000_core_button_pressed;
-  iface->button_released = gearsystem_sg1000_core_button_released;
-  iface->pause_pressed = gearsystem_sg1000_core_pause_pressed;
-  iface->pause_released = gearsystem_sg1000_core_pause_released;
 }
 
 GType
