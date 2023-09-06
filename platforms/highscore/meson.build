@@ -63,6 +63,7 @@ shared_library('gearsystem-highscore',
   c_args : gearsystem_c_args,
   cpp_args : gearsystem_cpp_args,
   include_directories : gearsystem_include_dirs,
+  name_prefix: '',
   install_dir : cores_dir,
   install : true
 )
