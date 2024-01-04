@@ -176,6 +176,8 @@ void config_read(void)
         config_shortcuts.shortcuts[i] = read_shortcut_key("Shortcuts", name, config_shortcuts.shortcuts[i]);
     }
 
+    config_emulator.fullscreen = read_bool("Emulator", "FullScreen", false);
+    config_emulator.show_menu = read_bool("Emulator", "ShowMenu", true);
     config_emulator.ffwd_speed = read_int("Emulator", "FFWD", 1);
     config_emulator.save_slot = read_int("Emulator", "SaveSlot", 0);
     config_emulator.start_paused = read_bool("Emulator", "StartPaused", false);
@@ -192,6 +194,9 @@ void config_read(void)
     config_emulator.savefiles_path = read_string("Emulator", "SaveFilesPath");
     config_emulator.savestates_dir_option = read_int("Emulator", "SaveStatesDirOption", 0);
     config_emulator.savestates_path = read_string("Emulator", "SaveStatesPath");
+    config_emulator.last_open_path = read_string("Emulator", "LastOpenPath");
+    config_emulator.window_width = read_int("Emulator", "WindowWidth", 770);
+    config_emulator.window_height = read_int("Emulator", "WindowHeight", 600);
 
     if (config_emulator.savefiles_path.empty())
     {
@@ -273,6 +278,8 @@ void config_write(void)
     write_bool("Debug", "Video", config_debug.show_video);
     write_int("Debug", "FontSize", config_debug.font_size);
 
+    write_bool("Emulator", "FullScreen", config_emulator.fullscreen);
+    write_bool("Emulator", "ShowMenu", config_emulator.show_menu);
     write_int("Emulator", "FFWD", config_emulator.ffwd_speed);
     write_int("Emulator", "SaveSlot", config_emulator.save_slot);
     write_bool("Emulator", "StartPaused", config_emulator.start_paused);
@@ -289,6 +296,9 @@ void config_write(void)
     write_string("Emulator", "SaveFilesPath", config_emulator.savefiles_path);
     write_int("Emulator", "SaveStatesDirOption", config_emulator.savestates_dir_option);
     write_string("Emulator", "SaveStatesPath", config_emulator.savestates_path);
+    write_string("Emulator", "LastOpenPath", config_emulator.last_open_path);
+    write_int("Emulator", "WindowWidth", config_emulator.window_width);
+    write_int("Emulator", "WindowHeight", config_emulator.window_height);
 
     for (int i = 0; i < config_max_recent_roms; i++)
     {

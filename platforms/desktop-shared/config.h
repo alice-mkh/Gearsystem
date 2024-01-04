@@ -37,6 +37,8 @@ static const int config_max_recent_roms = 10;
 
 struct config_Emulator
 {
+    bool fullscreen = false;
+    bool show_menu = true;
     bool paused = false;
     int save_slot = 0;
     bool start_paused = false;
@@ -57,6 +59,9 @@ struct config_Emulator
     std::string savefiles_path;
     int savestates_dir_option = 0;
     std::string savestates_path;
+    std::string last_open_path;
+    int window_width = 770;
+    int window_height = 600;
 };
 
 struct config_Video
