@@ -11,6 +11,7 @@ struct _GearsystemHsCore
   HsSoftwareContext *context;
 
   char *save_location;
+  gboolean enable_fm_audio;
 };
 
 static void gearsystem_game_gear_core_init (HsGameGearCoreInterface *iface);
@@ -54,6 +55,11 @@ gearsystem_hs_core_load_rom (HsCore     *core,
   hs_software_context_set_row_stride (self->context,
                                       width * hs_pixel_format_get_pixel_size (HS_PIXEL_FORMAT_RGB888));
 
+  self->core->GetAudio ()->Mute (false);
+
+  HsPlatform platform = hs_core_get_platform (core);
+  self->core->GetAudio ()->DisableYM2413 (platform != HS_PLATFORM_MASTER_SYSTEM || !self->enable_fm_audio);
+
   return TRUE;
 }
 
@@ -63,6 +69,9 @@ gearsystem_hs_core_reset (HsCore *core)
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
   self->core->ResetROM ();
+
+  HsPlatform platform = hs_core_get_platform (core);
+  self->core->GetAudio ()->DisableYM2413 (platform != HS_PLATFORM_MASTER_SYSTEM || !self->enable_fm_audio);
 }
 
 static void
@@ -306,8 +315,18 @@ gearsystem_game_gear_core_init (HsGameGearCoreInterface *iface)
 }
 
 static void
+gearsystem_master_system_core_set_enable_fm_audio (HsMasterSystemCore *core,
+                                                   gboolean            enable_fm_audio)
+{
+  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
+
+  self->enable_fm_audio = enable_fm_audio;
+}
+
+static void
 gearsystem_master_system_core_init (HsMasterSystemCoreInterface *iface)
 {
+  iface->set_enable_fm_audio = gearsystem_master_system_core_set_enable_fm_audio;
 }
 
 static void
