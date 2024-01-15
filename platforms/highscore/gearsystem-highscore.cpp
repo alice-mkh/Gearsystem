@@ -71,7 +71,6 @@ gearsystem_hs_core_reset (HsCore *core)
   self->core->ResetROM ();
 
   HsPlatform platform = hs_core_get_platform (core);
-  self->core->GetAudio ()->DisableYM2413 (platform != HS_PLATFORM_MASTER_SYSTEM || !self->enable_fm_audio);
 }
 
 static void
@@ -321,6 +320,8 @@ gearsystem_master_system_core_set_enable_fm_audio (HsMasterSystemCore *core,
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
   self->enable_fm_audio = enable_fm_audio;
+
+  self->core->GetAudio ()->DisableYM2413 (!self->enable_fm_audio);
 }
 
 static void
