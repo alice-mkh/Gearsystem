@@ -31,7 +31,6 @@ static bool debugging = false;
 static bool debug_step = false;
 static bool debug_next_frame = false;
 
-u16* frame_buffer;
 u16* debug_background_buffer;
 u16* debug_tile_buffer;
 u16* debug_sprite_buffers[64];
@@ -52,14 +51,12 @@ static void update_debug_sprite_buffers_sg1000(void);
 
 void emu_init(void)
 {
-    int screen_size = GS_RESOLUTION_MAX_WIDTH * GS_RESOLUTION_MAX_HEIGHT;
+    int screen_size = GS_RESOLUTION_MAX_WIDTH_WITH_OVERSCAN * GS_RESOLUTION_MAX_HEIGHT_WITH_OVERSCAN;
 
     emu_frame_buffer = new u8[screen_size * 3];
-    frame_buffer = new u16[screen_size];
-    
+
     for (int i=0, j=0; i < screen_size; i++, j+=3)
     {
-        frame_buffer[i] = 0;
         emu_frame_buffer[j] = 0;
         emu_frame_buffer[j+1] = 0;
         emu_frame_buffer[j+2] = 0;
@@ -71,7 +68,7 @@ void emu_init(void)
     gearsystem->Init();
 
     sound_queue = new Sound_Queue();
-    sound_queue->start(44100, 2);
+    sound_queue->start(GS_AUDIO_SAMPLE_RATE, 2);
 
     audio_buffer = new s16[GS_AUDIO_BUFFER_SIZE];
 
@@ -96,7 +93,6 @@ void emu_destroy(void)
     SafeDelete(sound_queue);
     SafeDelete(gearsystem);
     SafeDeleteArray(emu_frame_buffer);
-    SafeDeleteArray(frame_buffer);
     destroy_debug();
 }
 
@@ -183,16 +179,16 @@ void emu_dissasemble_rom(void)
     gearsystem->SaveDisassembledROM();
 }
 
-void emu_audio_volume(float volume)
+void emu_audio_mute(bool mute)
 {
-    audio_enabled = (volume > 0.0f);
-    gearsystem->SetSoundVolume(volume);
+    audio_enabled = !mute;
+    gearsystem->GetAudio()->Mute(mute);
 }
 
 void emu_audio_reset(void)
 {
     sound_queue->stop();
-    sound_queue->start(44100, 2);
+    sound_queue->start(GS_AUDIO_SAMPLE_RATE, 2);
 }
 
 bool emu_is_audio_enabled(void)
@@ -376,6 +372,32 @@ void emu_set_3d_glasses_config(int config)
     gearsystem->SetGlassesConfig(glasses);
 }
 
+void emu_set_overscan(int overscan)
+{
+    switch (overscan)
+    {
+        case 0:
+            gearsystem->GetVideo()->SetOverscan(Video::OverscanDisabled);
+            break;
+        case 1:
+            gearsystem->GetVideo()->SetOverscan(Video::OverscanTopBottom);
+            break;
+        case 2:
+            gearsystem->GetVideo()->SetOverscan(Video::OverscanFull284);
+            break;
+        case 3:
+            gearsystem->GetVideo()->SetOverscan(Video::OverscanFull320);
+            break;
+        default:
+            gearsystem->GetVideo()->SetOverscan(Video::OverscanDisabled);
+    }
+}
+
+void emu_disable_ym2413(bool disable)
+{
+    gearsystem->GetAudio()->DisableYM2413(disable);
+}
+
 static void save_ram(void)
 {
 #ifdef DEBUG_GEARSYSTEM
@@ -417,6 +439,9 @@ static const char* get_mapper(Cartridge::CartridgeTypes type)
         break;
     case Cartridge::CartridgeMSXMapper:
         return "MSX";
+        break;
+    case Cartridge::CartridgeJanggunMapper:
+        return "Janggun";
         break;
     case Cartridge::CartridgeNotSupported:
         return "Not Supported";

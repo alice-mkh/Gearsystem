@@ -195,8 +195,8 @@ void config_read(void)
     config_emulator.savestates_dir_option = read_int("Emulator", "SaveStatesDirOption", 0);
     config_emulator.savestates_path = read_string("Emulator", "SaveStatesPath");
     config_emulator.last_open_path = read_string("Emulator", "LastOpenPath");
-    config_emulator.window_width = read_int("Emulator", "WindowWidth", 770);
-    config_emulator.window_height = read_int("Emulator", "WindowHeight", 600);
+    config_emulator.window_width = read_int("Emulator", "WindowWidth", 640);
+    config_emulator.window_height = read_int("Emulator", "WindowHeight", 503);
 
     if (config_emulator.savefiles_path.empty())
     {
@@ -214,18 +214,20 @@ void config_read(void)
     }
 
     config_video.scale = read_int("Video", "Scale", 0);
-    config_video.ratio = read_int("Video", "AspectRatio", 0);
+    config_video.ratio = read_int("Video", "AspectRatio", 1);
+    config_video.overscan = read_int("Video", "Overscan", 1);
     config_video.fps = read_bool("Video", "FPS", false);
     config_video.bilinear = read_bool("Video", "Bilinear", false);
     config_video.mix_frames = read_bool("Video", "MixFrames", true);
-    config_video.mix_frames_intensity = read_float("Video", "MixFramesIntensity", 0.30f);
+    config_video.mix_frames_intensity = read_float("Video", "MixFramesIntensity", 0.50f);
     config_video.scanlines = read_bool("Video", "Scanlines", true);
-    config_video.scanlines_intensity = read_float("Video", "ScanlinesIntensity", 0.40f);
+    config_video.scanlines_intensity = read_float("Video", "ScanlinesIntensity", 0.10f);
     config_video.sync = read_bool("Video", "Sync", true);
     config_video.glasses = read_int("Video", "3DGlasses", 0);
     
     config_audio.enable = read_bool("Audio", "Enable", true);
     config_audio.sync = read_bool("Audio", "Sync", true);
+    config_audio.ym2413 = read_int("Audio", "YM2413", 0);
 
     config_input[0].key_left = (SDL_Scancode)read_int("InputA", "KeyLeft", SDL_SCANCODE_LEFT);
     config_input[0].key_right = (SDL_Scancode)read_int("InputA", "KeyRight", SDL_SCANCODE_RIGHT);
@@ -308,6 +310,7 @@ void config_write(void)
 
     write_int("Video", "Scale", config_video.scale);
     write_int("Video", "AspectRatio", config_video.ratio);
+    write_int("Video", "Overscan", config_video.overscan);
     write_bool("Video", "FPS", config_video.fps);
     write_bool("Video", "Bilinear", config_video.bilinear);
     write_bool("Video", "MixFrames", config_video.mix_frames);
@@ -319,6 +322,7 @@ void config_write(void)
 
     write_bool("Audio", "Enable", config_audio.enable);
     write_bool("Audio", "Sync", config_audio.sync);
+    write_int("Audio", "YM2413", config_audio.ym2413);
 
     write_int("InputA", "KeyLeft", config_input[0].key_left);
     write_int("InputA", "KeyRight", config_input[0].key_right);

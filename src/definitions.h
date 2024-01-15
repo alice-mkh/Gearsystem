@@ -38,7 +38,7 @@
 #endif
 
 #define GEARSYSTEM_TITLE "Gearsystem"
-#define GEARSYSTEM_VERSION "3.4.2"
+#define GEARSYSTEM_VERSION "3.5.0"
 
 #ifndef EMULATOR_BUILD
 #define EMULATOR_BUILD "undefined"
@@ -92,9 +92,18 @@ typedef void (*RamChangedCallback) (void);
 #define GS_RESOLUTION_MAX_WIDTH 256
 #define GS_RESOLUTION_MAX_HEIGHT 224
 
+#define GS_RESOLUTION_MAX_WIDTH_WITH_OVERSCAN 320
+#define GS_RESOLUTION_MAX_HEIGHT_WITH_OVERSCAN 288
+
 #define GS_RESOLUTION_SMS_WIDTH 256
 #define GS_RESOLUTION_SMS_HEIGHT 192
 #define GS_RESOLUTION_SMS_HEIGHT_EXTENDED 224
+#define GS_RESOLUTION_SMS_OVERSCAN_H_320_L 32
+#define GS_RESOLUTION_SMS_OVERSCAN_H_320_R 32
+#define GS_RESOLUTION_SMS_OVERSCAN_H_284_L 14
+#define GS_RESOLUTION_SMS_OVERSCAN_H_284_R 14
+#define GS_RESOLUTION_SMS_OVERSCAN_V 24
+#define GS_RESOLUTION_SMS_OVERSCAN_V_PAL 48
 
 #define GS_RESOLUTION_GG_WIDTH 160
 #define GS_RESOLUTION_GG_HEIGHT 144
@@ -111,9 +120,10 @@ typedef void (*RamChangedCallback) (void);
 #define GS_LINES_PER_FRAME_PAL 313
 #define GS_FRAMES_PER_SECOND_PAL 50
 
+#define GS_AUDIO_SAMPLE_RATE 44100
 #define GS_AUDIO_BUFFER_SIZE 4096
 
-#define GS_SAVESTATE_MAGIC 0x28011983
+#define GS_SAVESTATE_MAGIC 0x03121220
 
 enum GS_Color_Format
 {
@@ -180,7 +190,7 @@ inline void Log_func(const char* const msg, ...)
 
     va_list args;
     va_start(args, msg);
-    vsprintf(szBuf, msg, args);
+    vsnprintf(szBuf, 512, msg, args);
     va_end(args);
 
     printf("%d: %s\n", count, szBuf);

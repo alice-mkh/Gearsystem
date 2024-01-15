@@ -22,6 +22,7 @@
 #include "imgui/imgui_impl_sdl.h"
 #include "emu.h"
 #include "gui.h"
+#include "gui_debug.h"
 #include "config.h"
 #include "renderer.h"
 
@@ -40,19 +41,15 @@ static void sdl_destroy(void);
 static void sdl_events(void);
 static void sdl_events_emu(const SDL_Event* event);
 static void sdl_shortcuts_gui(const SDL_Event* event);
+static void handle_mouse_cursor(void);
 static void run_emulator(void);
 static void render(void);
 static void frame_throttle(void);
 static void save_window_size(void);
 
-int application_init(const char* arg)
+int application_init(const char* rom_file, const char* symbol_file)
 {
     Log ("<·> %s %s Desktop App <·>", GEARSYSTEM_TITLE, GEARSYSTEM_VERSION);
-
-    if (IsValidPointer(arg) && (strlen(arg) > 0))
-    {
-        Log ("Loading with argv: %s");
-    }
 
     config_init();
     config_read();
@@ -76,9 +73,16 @@ int application_init(const char* arg)
     if (config_emulator.fullscreen)
         application_trigger_fullscreen(true);
 
-    if (IsValidPointer(arg) && (strlen(arg) > 0))
+    if (IsValidPointer(rom_file) && (strlen(rom_file) > 0))
     {
-        gui_load_rom(arg);
+        Log ("Rom file argument: %s", rom_file);
+        gui_load_rom(rom_file);
+    }
+    if (IsValidPointer(symbol_file) && (strlen(symbol_file) > 0))
+    {
+        Log ("Symbol file argument: %s", symbol_file);
+        gui_debug_reset_symbols();
+        gui_debug_load_symbols_file(symbol_file);
     }
 
     return ret;
@@ -101,6 +105,7 @@ void application_mainloop(void)
     {
         frame_time_start = SDL_GetPerformanceCounter();
         sdl_events();
+        handle_mouse_cursor();
         run_emulator();
         render();
         frame_time_end = SDL_GetPerformanceCounter();
@@ -118,6 +123,11 @@ void application_trigger_quit(void)
 void application_trigger_fullscreen(bool fullscreen)
 {
     SDL_SetWindowFullscreen(sdl_window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+}
+
+void application_trigger_fit_to_content(int width, int height)
+{
+    SDL_SetWindowSize(sdl_window, width, height);
 }
 
 static int sdl_init(void)
@@ -146,7 +156,7 @@ static int sdl_init(void)
     SDL_GL_MakeCurrent(sdl_window, gl_context);
     SDL_GL_SetSwapInterval(0);
 
-    SDL_SetWindowMinimumSize(sdl_window, 770, 600);
+    SDL_SetWindowMinimumSize(sdl_window, 500, 300);
 
     application_gamepad_mappings = SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile("gamecontrollerdb.txt", "rb"), 1);
 
@@ -462,6 +472,22 @@ static void sdl_shortcuts_gui(const SDL_Event* event)
         int mod = event->key.keysym.mod;
         gui_process_input(key, mod);
     }
+}
+
+static void handle_mouse_cursor(void)
+{
+    bool hide_cursor = false;
+
+    if (gui_main_window_hovered && !config_debug.debug)
+        hide_cursor = true;
+
+    if (!config_emulator.show_menu && !config_debug.debug)
+        hide_cursor = true;
+
+    if (hide_cursor)
+        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    else
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
 }
 
 static void run_emulator(void)
