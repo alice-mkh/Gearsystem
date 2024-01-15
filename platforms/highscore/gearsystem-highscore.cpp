@@ -41,8 +41,8 @@ gearsystem_hs_core_load_rom (HsCore     *core,
   }
 
   self->context = hs_core_create_software_context (core,
-                                                   GS_RESOLUTION_MAX_WIDTH,
-                                                   GS_RESOLUTION_MAX_HEIGHT,
+                                                   GS_RESOLUTION_MAX_WIDTH_WITH_OVERSCAN,
+                                                   GS_RESOLUTION_MAX_HEIGHT_WITH_OVERSCAN,
                                                    HS_PIXEL_FORMAT_RGB888);
 
   self->core->GetRuntimeInfo (runtime_info);
