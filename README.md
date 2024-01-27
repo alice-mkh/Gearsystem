@@ -5,6 +5,8 @@
 [![commits)](https://img.shields.io/github/commit-activity/t/drhelius/Gearsystem)](https://github.com/drhelius/Gearsystem/commits/master)
 [![GitHub contributors](https://img.shields.io/github/contributors/drhelius/Gearsystem)](https://github.com/drhelius/Gearsystem/graphs/contributors)
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/drhelius)](https://github.com/sponsors/drhelius)
+[![Percentage of issues still open](http://isitmaintained.com/badge/open/drhelius/Gearsystem.svg)](http://isitmaintained.com/project/drhelius/Gearsystem "Percentage of issues still open")
+[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/drhelius/Gearsystem.svg)](http://isitmaintained.com/project/drhelius/Gearsystem "Average time to resolve an issue")
 [![GitHub](https://img.shields.io/github/license/drhelius/Gearsystem)](https://github.com/drhelius/Gearsystem/blob/master/LICENSE)
 [![Twitter Follow](https://img.shields.io/twitter/follow/drhelius)](https://twitter.com/drhelius)
 
@@ -89,7 +91,7 @@ make dist
 - Ubuntu / Debian / Raspberry Pi (Raspbian):
 
 ``` shell
-sudo apt-get install build-essential libsdl2-dev libglew-dev
+sudo apt-get install build-essential libsdl2-dev libglew-dev libgtk-3-dev
 cd platforms/linux
 make
 ```
@@ -97,17 +99,25 @@ make
 - Fedora:
 
 ``` shell
-sudo dnf install @development-tools gcc-c++ SDL2-devel glew-devel
+sudo dnf install @development-tools gcc-c++ SDL2-devel glew-devel gtk3-devel
 cd platforms/linux
 make
 ```
 
 ### BSD
 
+- FreeBSD:
+
+``` shell
+su root -c "pkg install -y git gmake pkgconf SDL2 glew lang/gcc gtk3"
+cd platforms/bsd
+gmake
+```
+
 - NetBSD:
 
 ``` shell
-su root -c "pkgin install gmake pkgconf SDL2 glew"
+su root -c "pkgin install gmake pkgconf SDL2 glew lang/gcc gtk3"
 cd platforms/bsd
 gmake
 ```
