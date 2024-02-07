@@ -10,7 +10,7 @@ struct _GearsystemHsCore
 
   HsSoftwareContext *context;
 
-  char *save_location;
+  char *save_path;
   gboolean enable_fm_audio;
 };
 
@@ -23,22 +23,34 @@ G_DEFINE_FINAL_TYPE_WITH_CODE (GearsystemHsCore, gearsystem_hs_core, HS_TYPE_COR
                                G_IMPLEMENT_INTERFACE (HS_TYPE_MASTER_SYSTEM_CORE, gearsystem_master_system_core_init)
                                G_IMPLEMENT_INTERFACE (HS_TYPE_SG1000_CORE, gearsystem_sg1000_core_init));
 
+static inline void
+load_save (GearsystemHsCore *self)
+{
+  std::ifstream ram_file (self->save_path, std::ofstream::in | std::ofstream::binary);
+
+  MemoryRule *rule = self->core->GetMemory ()->GetCurrentRule ();
+
+  rule->LoadRam (ram_file, rule->GetRamSize ());
+}
+
 static gboolean
 gearsystem_hs_core_load_rom (HsCore     *core,
                              const char  *rom_path,
-                             const char  *save_location,
+                             const char  *save_path,
                              GError     **error)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
   GS_RuntimeInfo runtime_info;
 
-  g_set_str (&self->save_location, save_location);
+  g_set_str (&self->save_path, save_path);
 
   if (!self->core->LoadROM (rom_path)) {
     g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_COULDNT_LOAD_ROM, "Couldn't load ROM");
 
     return FALSE;
   }
+
+  load_save (self);
 
   self->context = hs_core_create_software_context (core,
                                                    GS_RESOLUTION_MAX_WIDTH_WITH_OVERSCAN,
@@ -69,8 +81,6 @@ gearsystem_hs_core_reset (HsCore *core)
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
   self->core->ResetROM ();
-
-  HsPlatform platform = hs_core_get_platform (core);
 }
 
 static void
@@ -155,26 +165,34 @@ gearsystem_hs_core_stop (HsCore *core)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
-  g_clear_pointer (&self->save_location, g_free);
+  g_clear_pointer (&self->save_path, g_free);
   g_clear_object (&self->context);
 }
 
 static gboolean
-gearsystem_hs_core_save_data (HsCore  *core,
+gearsystem_hs_core_reload_save (HsCore      *core,
+                                const char  *save_path,
+                                GError     **error)
+{
+  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
+
+  g_set_str (&self->save_path, save_path);
+
+  load_save (self);
+
+  return TRUE;
+}
+
+static gboolean
+gearsystem_hs_core_sync_save (HsCore  *core,
                               GError **error)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-  g_autoptr (GFile) file = g_file_new_for_path (self->save_location);
+  std::ofstream ram_file (self->save_path, std::ofstream::out | std::ofstream::binary);
 
-  guchar *save_data = self->core->GetMemory ()->GetCurrentRule ()->GetRamBanks ();
-  size_t save_size = self->core->GetMemory ()->GetCurrentRule ()->GetRamSize ();
+  self->core->GetMemory ()->GetCurrentRule ()->SaveRam (ram_file);
 
-  if (save_data == NULL)
-    return g_file_replace_contents (file, "", 0, NULL, FALSE,
-                                    G_FILE_CREATE_NONE, NULL, NULL, error);
-
-  return g_file_replace_contents (file, (char *) save_data, save_size, NULL, FALSE,
-                                  G_FILE_CREATE_NONE, NULL, NULL, error);
+  return TRUE;
 }
 
 static void
@@ -290,7 +308,8 @@ gearsystem_hs_core_class_init (GearsystemHsCoreClass *klass)
   core_class->run_frame = gearsystem_hs_core_run_frame;
   core_class->stop = gearsystem_hs_core_stop;
 
-  core_class->save_data = gearsystem_hs_core_save_data;
+  core_class->reload_save = gearsystem_hs_core_reload_save;
+  core_class->sync_save = gearsystem_hs_core_sync_save;
 
   core_class->save_state = gearsystem_hs_core_save_state;
   core_class->load_state = gearsystem_hs_core_load_state;
