@@ -556,10 +556,17 @@ static void main_menu(void)
             
             ImGui::Separator();
 
+            static const char* const SAVE_FILES_LOCATION_OPTS[] = {
+                "Save Files In Custom Folder",
+#ifndef PREVENT_ROM_FOLDER_USAGE
+                "Save Files In ROM Folder",
+#endif
+            };
+            static constexpr int SAVE_FILES_LOCATION_OPTS_COUNT = sizeof(SAVE_FILES_LOCATION_OPTS) / sizeof(const char*);
             if (ImGui::BeginMenu("Save File Location"))
             {
                 ImGui::PushItemWidth(220.0f);
-                if (ImGui::Combo("##savefile_option", &config_emulator.savefiles_dir_option, "Save Files In Custom Folder\0Save Files In ROM Folder\0\0"))
+                if (ImGui::Combo("##savefile_option", &config_emulator.savefiles_dir_option, SAVE_FILES_LOCATION_OPTS, SAVE_FILES_LOCATION_OPTS_COUNT))
                 {
                     emu_savefiles_dir_option = config_emulator.savefiles_dir_option;
                 }
@@ -583,10 +590,17 @@ static void main_menu(void)
                 ImGui::EndMenu();
             }
 
+            static const char* const SAVE_STATES_LOCATION_OPTS[] = {
+                "Savestates In Custom Folder",
+#ifndef PREVENT_ROM_FOLDER_USAGE
+                "Savestates In ROM Folder",
+#endif
+            };
+            static constexpr int SAVE_STATES_LOCATION_OPTS_COUNT = sizeof(SAVE_STATES_LOCATION_OPTS) / sizeof(const char*);
             if (ImGui::BeginMenu("Save State Location"))
             {
                 ImGui::PushItemWidth(220.0f);
-                if (ImGui::Combo("##savestate_option", &config_emulator.savestates_dir_option, "Savestates In Custom Folder\0Savestates In ROM Folder\0\0"))
+                if (ImGui::Combo("##savestate_option", &config_emulator.savestates_dir_option, SAVE_STATES_LOCATION_OPTS, SAVE_STATES_LOCATION_OPTS_COUNT))
                 {
                     emu_savestates_dir_option = config_emulator.savestates_dir_option;
                 }
@@ -1515,30 +1529,46 @@ static void popup_modal_about(void)
 
         ImGui::Separator();
         
-        #ifdef _WIN64
+        #if defined(_M_ARM64)
+        ImGui::Text("Windows ARM64 build");
+        #endif
+        #if defined(_WIN64)
         ImGui::Text("Windows 64 bit build");
-        #elif defined(_WIN32)
+        #endif
+        #if defined(_WIN32)
         ImGui::Text("Windows 32 bit build");
         #endif
-        #ifdef __linux__
-        ImGui::Text("Linux build");
+        #if defined(__linux__) && defined(__x86_64__)
+        ImGui::Text("Linux 64 bit build");
         #endif
-        #ifdef __APPLE__
-        ImGui::Text("macOS build");
+        #if defined(__linux__) && defined(__i386__)
+        ImGui::Text("Linux 32 bit build");
         #endif
-        #ifdef _MSC_VER
+        #if defined(__linux__) && defined(__arm__)
+        ImGui::Text("Linux ARM build");
+        #endif
+        #if defined(__linux__) && defined(__aarch64__)
+        ImGui::Text("Linux ARM64 build");
+        #endif
+        #if defined(__APPLE__) && defined(__arm64__ )
+        ImGui::Text("macOS build (Apple Silicon)");
+        #endif
+        #if defined(__APPLE__) && defined(__x86_64__)
+        ImGui::Text("macOS build (Intel)");
+        #endif
+        #if defined(_MSC_VER)
         ImGui::Text("Microsoft C++ %d.", _MSC_VER);
         #endif
-        #ifdef __MINGW32__
+        #if defined(__MINGW32__)
         ImGui::Text("MinGW 32 bit (%d.%d)", __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION);
         #endif
-        #ifdef __MINGW64__
+        #if defined(__MINGW64__)
         ImGui::Text("MinGW 64 bit (%d.%d)", __MINGW64_VERSION_MAJOR, __MINGW64_VERSION_MINOR);
         #endif
         #if defined(__GNUC__) && !defined(__llvm__) && !defined(__INTEL_COMPILER)
         ImGui::Text("GCC %d.%d.%d", (int)__GNUC__, (int)__GNUC_MINOR__, (int)__GNUC_PATCHLEVEL__);
         #endif
-        #ifdef __clang_version__
+        #if defined(__clang_version__)
         ImGui::Text("Clang %s", __clang_version__);
         #endif
 
