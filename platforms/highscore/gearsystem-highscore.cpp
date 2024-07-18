@@ -34,17 +34,20 @@ load_save (GearsystemHsCore *self)
 }
 
 static gboolean
-gearsystem_hs_core_load_rom (HsCore     *core,
-                             const char  *rom_path,
+gearsystem_hs_core_load_rom (HsCore      *core,
+                             const char **rom_paths,
+                             int          n_rom_paths,
                              const char  *save_path,
                              GError     **error)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
   GS_RuntimeInfo runtime_info;
 
+  g_assert (n_rom_paths == 1);
+
   g_set_str (&self->save_path, save_path);
 
-  if (!self->core->LoadROM (rom_path)) {
+  if (!self->core->LoadROM (rom_paths[0])) {
     g_set_error (error, HS_CORE_ERROR, HS_CORE_ERROR_COULDNT_LOAD_ROM, "Couldn't load ROM");
 
     return FALSE;
