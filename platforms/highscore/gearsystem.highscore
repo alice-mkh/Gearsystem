@@ -1,6 +1,7 @@
 [Highscore]
 Name=Gearsystem
 Module=gearsystem-highscore.so
+Authors=Ignacio Sanchez;
 Copyright=Copyright (C) 2013 Ignacio Sanchez;
 Website=http://www.ignaciosanchez.me/projects/gearsystem-emulator/
 License=GPL-3.0-or-later
