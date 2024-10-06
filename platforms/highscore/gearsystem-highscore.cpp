@@ -58,7 +58,7 @@ gearsystem_hs_core_load_rom (HsCore      *core,
   self->context = hs_core_create_software_context (core,
                                                    GS_RESOLUTION_MAX_WIDTH_WITH_OVERSCAN,
                                                    GS_RESOLUTION_MAX_HEIGHT_WITH_OVERSCAN,
-                                                   HS_PIXEL_FORMAT_RGB888);
+                                                   HS_PIXEL_FORMAT_R8G8B8);
 
   self->core->GetRuntimeInfo (runtime_info);
 
@@ -67,8 +67,7 @@ gearsystem_hs_core_load_rom (HsCore      *core,
   HsRectangle area = HS_RECTANGLE_INIT (0, 0, width, height);
 
   hs_software_context_set_area (self->context, &area);
-  hs_software_context_set_row_stride (self->context,
-                                      width * hs_pixel_format_get_pixel_size (HS_PIXEL_FORMAT_RGB888));
+  hs_software_context_set_row_stride (self->context, width * 3);
 
   self->core->GetAudio ()->Mute (false);
 
