@@ -276,8 +276,14 @@ gearsystem_hs_core_get_aspect_ratio (HsCore *core)
 
   int width = runtime_info.screen_width;
   int height = runtime_info.screen_height;
+  double multiplier;
 
-  return (double) width / (double) height;
+  if (runtime_info.region == Region_PAL)
+    multiplier = 2950000.0 / 2128137.0;
+  else
+    multiplier = 8.0 / 7.0;
+
+  return multiplier * (double) width / (double) height;
 }
 
 static double
