@@ -269,21 +269,20 @@ gearsystem_hs_core_get_aspect_ratio (HsCore *core)
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
   GS_RuntimeInfo runtime_info;
 
-  if (hs_core_get_platform (core) == HS_PLATFORM_GAME_GEAR)
-    return (double) 4 / (double) 3;
-
   self->core->GetRuntimeInfo (runtime_info);
 
   int width = runtime_info.screen_width;
   int height = runtime_info.screen_height;
-  double multiplier;
+  double par;
 
-  if (runtime_info.region == Region_PAL)
-    multiplier = 2950000.0 / 2128137.0;
+  if (hs_core_get_platform (core) == HS_PLATFORM_GAME_GEAR)
+    par = 8.0 / 7.0;
+  else if (runtime_info.region == Region_PAL)
+    par = 2950000.0 / 2128137.0;
   else
-    multiplier = 8.0 / 7.0;
+    par = 8.0 / 7.0;
 
-  return multiplier * (double) width / (double) height;
+  return par * (double) width / (double) height;
 }
 
 static double
