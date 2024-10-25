@@ -291,7 +291,7 @@ gearsystem_hs_core_get_sample_rate (HsCore *core)
   return 44100;
 }
 
-HsRegion
+static HsRegion
 gearsystem_hs_core_get_region (HsCore *core)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
