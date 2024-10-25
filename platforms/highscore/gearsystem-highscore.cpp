@@ -78,7 +78,7 @@ gearsystem_hs_core_load_rom (HsCore      *core,
 }
 
 static void
-gearsystem_hs_core_reset (HsCore *core)
+gearsystem_hs_core_reset (HsCore *core, gboolean hard)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
