@@ -82,7 +82,7 @@ gearsystem_hs_core_reset (HsCore *core)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
-  self->core->ResetROM ();
+  self->core->ResetROMPreservingRAM ();
 }
 
 static void
