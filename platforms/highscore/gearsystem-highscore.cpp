@@ -291,6 +291,23 @@ gearsystem_hs_core_get_sample_rate (HsCore *core)
   return 44100;
 }
 
+HsRegion
+gearsystem_hs_core_get_region (HsCore *core)
+{
+  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
+  GS_RuntimeInfo runtime_info;
+
+  if (hs_core_get_platform (core) == HS_PLATFORM_GAME_GEAR)
+    return HS_REGION_UNKNOWN;
+
+  self->core->GetRuntimeInfo (runtime_info);
+
+  if (runtime_info.region == Region_PAL)
+    return HS_REGION_PAL;
+  else
+    return HS_REGION_NTSC;
+}
+
 static void
 gearsystem_hs_core_finalize (GObject *object)
 {
@@ -325,6 +342,8 @@ gearsystem_hs_core_class_init (GearsystemHsCoreClass *klass)
   core_class->get_aspect_ratio = gearsystem_hs_core_get_aspect_ratio;
 
   core_class->get_sample_rate = gearsystem_hs_core_get_sample_rate;
+
+  core_class->get_region = gearsystem_hs_core_get_region;
 }
 
 static void
