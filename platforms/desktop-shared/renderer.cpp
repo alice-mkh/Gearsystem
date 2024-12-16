@@ -64,20 +64,19 @@ static void render_scanlines(void);
 
 void renderer_init(void)
 {
-    #ifndef __APPLE__
+#if !defined(__APPLE__)
     GLenum err = glewInit();
     if (GLEW_OK != err)
     {
-        /* Problem: glewInit failed, something is seriously wrong. */
-        Log("GLEW Error: %s\n", glewGetErrorString(err));
+        Log("GLEW Error: %s", glewGetErrorString(err));
     }
 
     renderer_glew_version = (const char*)glewGetString(GLEW_VERSION);
-    renderer_opengl_version = (const char*)glGetString(GL_VERSION);
+    Log("Using GLEW %s", renderer_glew_version);
+#endif
 
-    Log("Using GLEW %s\n", renderer_glew_version);
-    
-    #endif
+    renderer_opengl_version = (const char*)glGetString(GL_VERSION);
+    Log("Using OpenGL %s", renderer_opengl_version);
 
     init_ogl_gui();
     init_ogl_emu();
@@ -135,7 +134,17 @@ void renderer_render(void)
 
 void renderer_end_render(void)
 {
-
+#if defined(__APPLE__) || defined(_WIN32)
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
+        SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
+    }
+#endif
 }
 
 static void init_ogl_gui(void)

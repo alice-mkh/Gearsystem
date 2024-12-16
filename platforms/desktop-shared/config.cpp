@@ -140,6 +140,8 @@ void config_init(void)
     config_setShortcut(gui_ShortcutDebugBreakpoint, KMOD_CTRL, SDL_SCANCODE_F9);
     config_setShortcut(gui_ShortcutDebugRuntocursor, KMOD_CTRL, SDL_SCANCODE_F8);
     config_setShortcut(gui_ShortcutDebugGoBack, KMOD_CTRL, SDL_SCANCODE_BACKSPACE);
+    config_setShortcut(gui_ShortcutDebugCopy, KMOD_CTRL, SDL_SCANCODE_C);
+    config_setShortcut(gui_ShortcutDebugPaste, KMOD_CTRL, SDL_SCANCODE_V);
     config_setShortcut(gui_ShortcutShowMainMenu, KMOD_CTRL, SDL_SCANCODE_M);
 
     config_ini_file = new mINI::INIFile(config_emu_file_path);
@@ -168,6 +170,7 @@ void config_read(void)
     config_debug.show_processor = read_bool("Debug", "Processor", true);
     config_debug.show_video = read_bool("Debug", "Video", false);
     config_debug.font_size = read_int("Debug", "FontSize", 0);
+    config_debug.multi_viewport = read_bool("Debug", "MultiViewport", false);
 
     for (int i = 0; i < gui_ShortCutEventMax; i++)
     {
@@ -216,6 +219,9 @@ void config_read(void)
     }
 
     config_video.scale = read_int("Video", "Scale", 0);
+    if (config_video.scale > 3)
+        config_video.scale -= 2;
+    config_video.scale_manual = read_int("Video", "ScaleManual", 1);
     config_video.ratio = read_int("Video", "AspectRatio", 1);
     config_video.overscan = read_int("Video", "Overscan", 1);
     config_video.fps = read_bool("Video", "FPS", false);
@@ -267,7 +273,7 @@ void config_read(void)
     config_input[1].gamepad_x_axis = read_int("InputB", "GamepadX", SDL_CONTROLLER_AXIS_LEFTX);
     config_input[1].gamepad_y_axis = read_int("InputB", "GamepadY", SDL_CONTROLLER_AXIS_LEFTY);
 
-    Log("Settings loaded");
+    Debug("Settings loaded");
 }
 
 void config_write(void)
@@ -281,6 +287,7 @@ void config_write(void)
     write_bool("Debug", "Processor", config_debug.show_processor);
     write_bool("Debug", "Video", config_debug.show_video);
     write_int("Debug", "FontSize", config_debug.font_size);
+    write_bool("Debug", "MultiViewport", config_debug.multi_viewport);
 
     write_bool("Emulator", "FullScreen", config_emulator.fullscreen);
     write_bool("Emulator", "ShowMenu", config_emulator.show_menu);
@@ -312,6 +319,7 @@ void config_write(void)
     }
 
     write_int("Video", "Scale", config_video.scale);
+    write_int("Video", "ScaleManual", config_video.scale_manual);
     write_int("Video", "AspectRatio", config_video.ratio);
     write_int("Video", "Overscan", config_video.overscan);
     write_bool("Video", "FPS", config_video.fps);
@@ -377,7 +385,7 @@ void config_write(void)
 
     if (config_ini_file->write(config_ini_data, true))
     {
-        Log("Settings saved");
+        Debug("Settings saved");
     }
 }
 
@@ -468,7 +476,7 @@ static int read_int(const char* group, const char* key, int default_value)
     else
         ret = std::stoi(value);
 
-    Log("Load setting: [%s][%s]=%d", group, key, ret);
+    Debug("Load setting: [%s][%s]=%d", group, key, ret);
     return ret;
 }
 
@@ -476,7 +484,7 @@ static void write_int(const char* group, const char* key, int integer)
 {
     std::string value = std::to_string(integer);
     config_ini_data[group][key] = value;
-    Log("Save setting: [%s][%s]=%s", group, key, value.c_str());
+    Debug("Save setting: [%s][%s]=%s", group, key, value.c_str());
 }
 
 static float read_float(const char* group, const char* key, float default_value)
@@ -490,7 +498,7 @@ static float read_float(const char* group, const char* key, float default_value)
     else
         ret = strtof(value.c_str(), NULL);
 
-    Log("Load setting: [%s][%s]=%.2f", group, key, ret);
+    Debug("Load setting: [%s][%s]=%.2f", group, key, ret);
     return ret;
 }
 
@@ -498,7 +506,7 @@ static void write_float(const char* group, const char* key, float value)
 {
     std::string value_str = std::to_string(value);
     config_ini_data[group][key] = value_str;
-    Log("Save setting: [%s][%s]=%s", group, key, value_str.c_str());
+    Debug("Save setting: [%s][%s]=%s", group, key, value_str.c_str());
 }
 
 static bool read_bool(const char* group, const char* key, bool default_value)
@@ -512,7 +520,7 @@ static bool read_bool(const char* group, const char* key, bool default_value)
     else
         std::istringstream(value) >> std::boolalpha >> ret;
 
-    Log("Load setting: [%s][%s]=%s", group, key, ret ? "true" : "false");
+    Debug("Load setting: [%s][%s]=%s", group, key, ret ? "true" : "false");
     return ret;
 }
 
@@ -523,19 +531,19 @@ static void write_bool(const char* group, const char* key, bool boolean)
     std::string value;
     value = converter.str();
     config_ini_data[group][key] = value;
-    Log("Save setting: [%s][%s]=%s", group, key, value.c_str());
+    Debug("Save setting: [%s][%s]=%s", group, key, value.c_str());
 }
 
 static std::string read_string(const char* group, const char* key)
 {
     std::string ret = config_ini_data[group][key];
-    Log("Load setting: [%s][%s]=%s", group, key, ret.c_str());
+    Debug("Load setting: [%s][%s]=%s", group, key, ret.c_str());
     return ret;
 }
 
 static void write_string(const char* group, const char* key, std::string value)
 {
     config_ini_data[group][key] = value;
-    Log("Save setting: [%s][%s]=%s", group, key, value.c_str());
+    Debug("Save setting: [%s][%s]=%s", group, key, value.c_str());
 }
 

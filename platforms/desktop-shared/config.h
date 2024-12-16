@@ -68,6 +68,7 @@ struct config_Emulator
 struct config_Video
 {
     int scale = 0;
+    int scale_manual = 1;
     int ratio = 1;
     int overscan = 1;
     bool fps = false;
@@ -128,6 +129,7 @@ struct config_Debug
     bool show_memory = true;
     bool show_video = false;
     int font_size = 0;
+    bool multi_viewport = false;
 };
 
 EXTERN mINI::INIFile* config_ini_file;

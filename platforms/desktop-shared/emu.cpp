@@ -18,7 +18,7 @@
  */
 
 #include "../../src/gearsystem.h"
-#include "../audio-shared/Sound_Queue.h"
+#include "../audio-shared/sound_queue.h"
 
 #define EMU_IMPORT
 #include "emu.h"
@@ -30,7 +30,7 @@
 #include "stb/stb_image_write.h"
 
 static GearsystemCore* gearsystem;
-static Sound_Queue* sound_queue;
+static SoundQueue* sound_queue;
 static s16* audio_buffer;
 static bool audio_enabled;
 static bool debugging = false;
@@ -73,8 +73,8 @@ void emu_init(void)
     gearsystem = new GearsystemCore();
     gearsystem->Init();
 
-    sound_queue = new Sound_Queue();
-    sound_queue->start(GS_AUDIO_SAMPLE_RATE, 2);
+    sound_queue = new SoundQueue();
+    sound_queue->Start(GS_AUDIO_SAMPLE_RATE, 2);
 
     audio_buffer = new s16[GS_AUDIO_BUFFER_SIZE];
 
@@ -133,7 +133,7 @@ void emu_update(void)
 
         if ((sampleCount > 0) && !gearsystem->IsPaused())
         {
-            sound_queue->write(audio_buffer, sampleCount, emu_audio_sync);
+            sound_queue->Write(audio_buffer, sampleCount, emu_audio_sync);
         }
     }
 }
@@ -193,13 +193,18 @@ void emu_audio_mute(bool mute)
 
 void emu_audio_reset(void)
 {
-    sound_queue->stop();
-    sound_queue->start(GS_AUDIO_SAMPLE_RATE, 2);
+    sound_queue->Stop();
+    sound_queue->Start(GS_AUDIO_SAMPLE_RATE, 2);
 }
 
 bool emu_is_audio_enabled(void)
 {
     return audio_enabled;
+}
+
+bool emu_is_audio_open(void)
+{
+    return sound_queue->IsOpen();
 }
 
 void emu_save_ram(const char* file_path)
@@ -285,11 +290,11 @@ void emu_get_info(char* info)
         const char* mapper = get_mapper(cart->GetType());
         const char* zone = get_zone(cart->GetZone());
 
-        sprintf(info, "File Name: %s\nMapper: %s\nRegion: %s\nSystem: %s\nRefresh Rate: %s\nCartridge Header: %s\nROM Banks: %d\nBattery: %s\nScreen Resolution: %dx%d", filename, mapper, zone, system, pal, checksum, rom_banks, battery, runtime.screen_width, runtime.screen_height);
+        snprintf(info, 512, "File Name: %s\nMapper: %s\nRegion: %s\nSystem: %s\nRefresh Rate: %s\nCartridge Header: %s\nROM Banks: %d\nBattery: %s\nScreen Resolution: %dx%d", filename, mapper, zone, system, pal, checksum, rom_banks, battery, runtime.screen_width, runtime.screen_height);
     }
     else
     {
-        sprintf(info, "No data!");
+        snprintf(info, 512, "No data!");
     }
 }
 
@@ -416,7 +421,7 @@ void emu_save_screenshot(const char* file_path)
 
     stbi_write_png(file_path, runtime.screen_width, runtime.screen_height, 3, emu_frame_buffer, runtime.screen_width * 3);
 
-    Log("Screenshot saved!");
+    Debug("Screenshot saved!");
 }
 
 static void save_ram(void)

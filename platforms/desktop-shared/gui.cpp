@@ -18,7 +18,8 @@
  */
 
 #include "imgui/imgui.h"
-#include "imgui/imgui_memory_editor.h"
+#include "imgui/memory_editor.h"
+#include "imgui/colors.h"
 #include "imgui/fonts/RobotoMedium.h"
 #include "config.h"
 #include "emu.h"
@@ -36,7 +37,6 @@ static int main_menu_height;
 static bool dialog_in_use = false;
 static SDL_Scancode* configured_key;
 static int* configured_button;
-static ImVec4 custom_palette[4];
 static std::list<std::string> cheat_list;
 static bool shortcut_open_rom = false;
 static ImFont* default_font[4];
@@ -81,6 +81,8 @@ static Cartridge::CartridgeTypes get_mapper(int index);
 static Cartridge::CartridgeZones get_zone(int index);
 static Cartridge::CartridgeSystem get_system(int index);
 static Cartridge::CartridgeRegions get_region(int index);
+static void set_style(void);
+static ImVec4 lerp(const ImVec4& a, const ImVec4& b, float t);
 
 void gui_init(void)
 {
@@ -94,9 +96,16 @@ void gui_init(void)
     ImGui::StyleColorsDark();
     ImGuiIO& io = ImGui::GetIO();
 
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigDockingWithShift = true;
     io.IniFilename = config_imgui_file_path;
 
     io.FontGlobalScale /= application_display_scale;
+
+#if defined(__APPLE__) || defined(_WIN32)
+    if (config_debug.multi_viewport)
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+#endif
 
     gui_roboto_font = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoMedium_compressed_data, RobotoMedium_compressed_size, 17.0f * application_display_scale, NULL, io.Fonts->GetGlyphRangesCyrillic());
 
@@ -109,6 +118,8 @@ void gui_init(void)
     }
 
     gui_default_font = default_font[config_debug.font_size];
+
+    set_style();
 
     emu_audio_mute(!config_audio.enable);
 
@@ -138,6 +149,9 @@ void gui_destroy(void)
 void gui_render(void)
 {
     ImGui::NewFrame();
+
+    if (config_debug.debug)
+        ImGui::DockSpaceOverViewport();
 
     gui_in_use = dialog_in_use;
     
@@ -218,6 +232,14 @@ void gui_shortcut(gui_ShortCutEvent event)
         if (config_debug.debug)
             gui_debug_go_back();
         break;
+    case gui_ShortcutDebugCopy:
+        if (config_debug.debug)
+            gui_debug_copy_memory();
+        break;
+    case gui_ShortcutDebugPaste:
+        if (config_debug.debug)
+            gui_debug_paste_memory();
+        break;
     case gui_ShortcutShowMainMenu:
         config_emulator.show_menu = !config_emulator.show_menu;
         break;
@@ -280,13 +302,20 @@ void gui_load_rom(const char* path)
             emu_frame_buffer[i] = 0;
         }
     }
+
+    if (!emu_is_empty())
+    {
+        char title[256];
+        snprintf(title, 256, "%s %s - %s", GEARSYSTEM_TITLE, GEARSYSTEM_VERSION, emu_get_core()->GetCartridge()->GetFileName());
+        application_update_title(title);
+    }
 }
 
 void gui_set_status_message(const char* message, u32 milliseconds)
 {
     if (config_emulator.status_messages)
     {
-        strcpy(status_message, message);
+        snprintf(status_message, sizeof(status_message), "%s", message);
         status_message_active = true;
         status_message_start_time = SDL_GetTicks();
         status_message_duration = milliseconds;
@@ -641,7 +670,7 @@ static void main_menu(void)
 
                 static char cheat_buffer[20*50] = "";
                 ImGui::PushItemWidth(150);
-                ImGui::InputTextMultiline("", cheat_buffer, IM_ARRAYSIZE(cheat_buffer));
+                ImGui::InputTextMultiline("##cheats_input", cheat_buffer, IM_ARRAYSIZE(cheat_buffer));
                 ImGui::PopItemWidth();
 
                 ImGui::NextColumn();
@@ -715,7 +744,9 @@ static void main_menu(void)
             if (ImGui::BeginMenu("Scale"))
             {
                 ImGui::PushItemWidth(250.0f);
-                ImGui::Combo("##scale", &config_video.scale, "Integer Scale (Auto)\0Integer Scale (X1)\0Integer Scale (X2)\0Integer Scale (X3)\0Scale to Window Height\0Scale to Window Width & Height\0\0");
+                ImGui::Combo("##scale", &config_video.scale, "Integer Scale (Auto)\0Integer Scale (Manual)\0Scale to Window Height\0Scale to Window Width & Height\0\0");
+                if (config_video.scale == 1)
+                    ImGui::SliderInt("##scale_manual", &config_video.scale_manual, 1, 10);
                 ImGui::PopItemWidth();
                 ImGui::EndMenu();
             }
@@ -1020,6 +1051,11 @@ static void main_menu(void)
 
             ImGui::Separator();
 
+#if defined(__APPLE__) || defined(_WIN32)
+            ImGui::MenuItem("Multi-Viewport (Restart required)", "", &config_debug.multi_viewport, config_debug.debug);
+            ImGui::Separator();
+#endif
+
             if (ImGui::MenuItem("Load Symbols...", "", (void*)0, config_debug.debug))
             {
                 open_symbols = true;
@@ -1117,7 +1153,7 @@ static void main_window(void)
             ratio = (float)runtime.screen_width / (float)runtime.screen_height;
     }
 
-    if (!config_debug.debug && config_video.scale == 5)
+    if (!config_debug.debug && config_video.scale == 3)
     {
         ratio = (float)w / (float)h;
     }
@@ -1128,34 +1164,38 @@ static void main_window(void)
 
     if (config_debug.debug)
     {
-        if ((config_video.scale > 0) && (config_video.scale < 4))
-            scale_multiplier = config_video.scale;
+        if ((config_video.scale != 0))
+            scale_multiplier = config_video.scale_manual;
         else
             scale_multiplier = 1;
     }
     else
     {
-        if ((config_video.scale > 0) && (config_video.scale < 4))
+        switch (config_video.scale)
         {
-            scale_multiplier = config_video.scale;
-        }
-        else if (config_video.scale == 0)
+        case 0:
         {
             int factor_w = w / w_corrected;
             int factor_h = h / h_corrected;
             scale_multiplier = (factor_w < factor_h) ? factor_w : factor_h;
+            break;
         }
-        else if (config_video.scale == 4)
-        {
+        case 1:
+            scale_multiplier = config_video.scale_manual;
+            break;
+        case 2:
             scale_multiplier = 1;
             h_corrected = h;
             w_corrected = h * ratio;
-        }
-        else if (config_video.scale == 5)
-        {
+            break;
+        case 3:
             scale_multiplier = 1;
             w_corrected = w;
             h_corrected = h;
+            break;
+        default:
+            scale_multiplier = 1;
+            break;
         }
     }
 
@@ -1182,7 +1222,7 @@ static void main_window(void)
         int window_y = ((h - (h_corrected * scale_multiplier)) / 2) + (config_emulator.show_menu ? main_menu_height : 0);
 
         ImGui::SetNextWindowSize(ImVec2((float)main_window_width, (float)main_window_height));
-        ImGui::SetNextWindowPos(ImVec2((float)window_x, (float)window_y));
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((float)window_x, (float)window_y));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
         flags |= ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBringToFrontOnFocus;
@@ -1194,7 +1234,7 @@ static void main_window(void)
     float tex_h = (float)runtime.screen_width / (float)(GS_RESOLUTION_MAX_WIDTH_WITH_OVERSCAN);
     float tex_v = (float)runtime.screen_height / (float)(GS_RESOLUTION_MAX_HEIGHT_WITH_OVERSCAN);
 
-    ImGui::Image((void*)(intptr_t)renderer_emu_texture, ImVec2((float)main_window_width, (float)main_window_height), ImVec2(0, 0), ImVec2(tex_h, tex_v));
+    ImGui::Image((ImTextureID)(intptr_t)renderer_emu_texture, ImVec2((float)main_window_width, (float)main_window_height), ImVec2(0, 0), ImVec2(tex_h, tex_v));
 
     if (config_video.fps)
         show_fps();
@@ -1413,7 +1453,7 @@ static void keyboard_configuration_item(const char* text, SDL_Scancode* key, int
     ImGui::SameLine(70);
 
     char button_label[256];
-    sprintf(button_label, "%s##%s%d", SDL_GetScancodeName(*key), text, player);
+    snprintf(button_label, sizeof(button_label), "%s##%s%d", SDL_GetScancodeName(*key), text, player);
 
     if (ImGui::Button(button_label, ImVec2(90,0)))
     {
@@ -1430,7 +1470,7 @@ static void gamepad_configuration_item(const char* text, int* button, int player
     static const char* gamepad_names[16] = {"A", "B", "X" ,"Y", "BACK", "GUID", "START", "L3", "R3", "L1", "R1", "UP", "DOWN", "LEFT", "RIGHT", "15"};
 
     char button_label[256];
-    sprintf(button_label, "%s##%s%d", gamepad_names[*button], text, player);
+    snprintf(button_label, sizeof(button_label), "%s##%s%d", gamepad_names[*button], text, player);
 
     if (ImGui::Button(button_label, ImVec2(70,0)))
     {
@@ -1446,9 +1486,9 @@ static void popup_modal_keyboard()
         ImGui::Text("Press any key...\n\n");
         ImGui::Separator();
 
-        for (int i = 0; i < IM_ARRAYSIZE(ImGui::GetIO().KeysDown); i++)
+        for ( int i = 0; i < ImGuiKey_NamedKey_END; ++i )
         {
-            if (ImGui::IsKeyPressed(i))
+            if (ImGui::IsKeyDown((ImGuiKey)i))
             {
                 SDL_Scancode key = (SDL_Scancode)i;
 
@@ -1498,18 +1538,115 @@ static void popup_modal_about(void)
 {
     if (ImGui::BeginPopupModal("About " GEARSYSTEM_TITLE, NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {
-        ImGui::Text("%s %s", GEARSYSTEM_TITLE, GEARSYSTEM_VERSION);
-        ImGui::Text("Build: %s", EMULATOR_BUILD);
-        
-        ImGui::Separator();
-        
-        ImGui::Text("By Ignacio Sánchez (twitter.com/drhelius)");
-        ImGui::Text("%s is licensed under the GPL-3.0 License, see LICENSE for more information.", GEARSYSTEM_TITLE);
-        
-        ImGui::Separator();
+        ImGui::PushFont(gui_default_font);
+        ImGui::TextColored(cyan, "%s\n", GEARSYSTEM_TITLE_ASCII);
+
+        ImGui::TextColored(orange, "  By Ignacio Sánchez (DrHelius)");
+        ImGui::Text(" "); ImGui::SameLine();
+        ImGui::TextLink("https://github.com/drhelius/Gearsystem");
+        ImGui::Text(" "); ImGui::SameLine();
+        ImGui::TextLink("https://x.com/drhelius");
+        ImGui::NewLine();
+
+        ImGui::PopFont();
 
         if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
         {
+            if (ImGui::BeginTabItem("Build Info"))
+            {
+                ImGui::BeginChild("build", ImVec2(0, 100), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
+                ImGui::Text("Build: %s", GEARSYSTEM_VERSION);
+
+                #if defined(__DATE__) && defined(__TIME__)
+                ImGui::Text("Built on: %s - %s", __DATE__, __TIME__);
+                #endif
+                #if defined(_M_ARM64)
+                ImGui::Text("Windows ARM64 build");
+                #endif
+                #if defined(_M_X64)
+                ImGui::Text("Windows 64 bit build");
+                #endif
+                #if defined(_M_IX86)
+                ImGui::Text("Windows 32 bit build");
+                #endif
+                #if defined(__linux__) && defined(__x86_64__)
+                ImGui::Text("Linux 64 bit build");
+                #endif
+                #if defined(__linux__) && defined(__i386__)
+                ImGui::Text("Linux 32 bit build");
+                #endif
+                #if defined(__linux__) && defined(__arm__)
+                ImGui::Text("Linux ARM build");
+                #endif
+                #if defined(__linux__) && defined(__aarch64__)
+                ImGui::Text("Linux ARM64 build");
+                #endif
+                #if defined(__APPLE__) && defined(__arm64__ )
+                ImGui::Text("macOS build (Apple Silicon)");
+                #endif
+                #if defined(__APPLE__) && defined(__x86_64__)
+                ImGui::Text("macOS build (Intel)");
+                #endif
+                #if defined(__ANDROID__)
+                ImGui::Text("Android build");
+                #endif
+                #if defined(_MSC_FULL_VER)
+                ImGui::Text("Microsoft C++ %d", _MSC_FULL_VER);
+                #endif
+                #if defined(_MSVC_LANG)
+                ImGui::Text("MSVC %d", _MSVC_LANG);
+                #endif
+                #if defined(__CLR_VER)
+                ImGui::Text("CLR version: %d", __CLR_VER);
+                #endif
+                #if defined(__MINGW32__)
+                ImGui::Text("MinGW 32 bit (%d.%d)", __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION);
+                #endif
+                #if defined(__MINGW64__)
+                ImGui::Text("MinGW 64 bit (%d.%d)", __MINGW64_VERSION_MAJOR, __MINGW64_VERSION_MINOR);
+                #endif
+                #if defined(__GNUC__) && !defined(__llvm__) && !defined(__INTEL_COMPILER)
+                ImGui::Text("GCC %d.%d.%d", (int)__GNUC__, (int)__GNUC_MINOR__, (int)__GNUC_PATCHLEVEL__);
+                #endif
+                #if defined(__clang_version__)
+                ImGui::Text("Clang %s", __clang_version__);
+                #endif
+                ImGui::Text("SDL %d.%d.%d (build)", application_sdl_build_version.major, application_sdl_build_version.minor, application_sdl_build_version.patch);
+                ImGui::Text("SDL %d.%d.%d (link) ", application_sdl_link_version.major, application_sdl_link_version.minor, application_sdl_link_version.patch);
+                ImGui::Text("OpenGL %s", renderer_opengl_version);
+                #if !defined(__APPLE__)
+                ImGui::Text("GLEW %s", renderer_glew_version);
+                #endif
+                ImGui::Text("Dear ImGui %s (%d)", IMGUI_VERSION, IMGUI_VERSION_NUM);
+
+                #if defined(DEBUG)
+                ImGui::Text("define: DEBUG");
+                #endif
+                #if defined(DEBUG_GEARSYSTEM)
+                ImGui::Text("define: DEBUG_GEARSYSTEM");
+                #endif
+                #if defined(GEARSYSTEM_NO_OPTIMIZATIONS)
+                ImGui::Text("define: GEARSYSTEM_NO_OPTIMIZATIONS");
+                #endif
+                #if defined(__cplusplus)
+                ImGui::Text("define: __cplusplus = %d", (int)__cplusplus);
+                #endif
+                #if defined(__STDC__)
+                ImGui::Text("define: __STDC__ = %d", (int)__STDC__);
+                #endif
+                #if defined(__STDC_VERSION__)
+                ImGui::Text("define: __STDC_VERSION__ = %d", (int)__STDC_VERSION__);
+                #endif
+                #if defined(IS_LITTLE_ENDIAN)
+                ImGui::Text("define: IS_LITTLE_ENDIAN");
+                #endif
+                #if defined(IS_BIG_ENDIAN)
+                ImGui::Text("define: IS_BIG_ENDIAN");
+                #endif
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
             if (ImGui::BeginTabItem("Special thanks to"))
             {
                 ImGui::BeginChild("backers", ImVec2(0, 100), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
@@ -1527,101 +1664,24 @@ static void popup_modal_about(void)
             ImGui::EndTabBar();
         }
 
-        ImGui::Separator();
-        
-        #if defined(_M_ARM64)
-        ImGui::Text("Windows ARM64 build");
-        #endif
-        #if defined(_M_X64)
-        ImGui::Text("Windows 64 bit build");
-        #endif
-        #if defined(_M_IX86)
-        ImGui::Text("Windows 32 bit build");
-        #endif
-        #if defined(__linux__) && defined(__x86_64__)
-        ImGui::Text("Linux 64 bit build");
-        #endif
-        #if defined(__linux__) && defined(__i386__)
-        ImGui::Text("Linux 32 bit build");
-        #endif
-        #if defined(__linux__) && defined(__arm__)
-        ImGui::Text("Linux ARM build");
-        #endif
-        #if defined(__linux__) && defined(__aarch64__)
-        ImGui::Text("Linux ARM64 build");
-        #endif
-        #if defined(__APPLE__) && defined(__arm64__ )
-        ImGui::Text("macOS build (Apple Silicon)");
-        #endif
-        #if defined(__APPLE__) && defined(__x86_64__)
-        ImGui::Text("macOS build (Intel)");
-        #endif
-        #if defined(_MSC_FULL_VER)
-        ImGui::Text("Microsoft C++ %d", _MSC_FULL_VER);
-        #endif
-        #if defined(__CLR_VER)
-        ImGui::Text("CLR version: %d", __CLR_VER);
-        #endif
-        #if defined(__MINGW32__)
-        ImGui::Text("MinGW 32 bit (%d.%d)", __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION);
-        #endif
-        #if defined(__MINGW64__)
-        ImGui::Text("MinGW 64 bit (%d.%d)", __MINGW64_VERSION_MAJOR, __MINGW64_VERSION_MINOR);
-        #endif
-        #if defined(__GNUC__) && !defined(__llvm__) && !defined(__INTEL_COMPILER)
-        ImGui::Text("GCC %d.%d.%d", (int)__GNUC__, (int)__GNUC_MINOR__, (int)__GNUC_PATCHLEVEL__);
-        #endif
-        #if defined(__clang_version__)
-        ImGui::Text("Clang %s", __clang_version__);
-        #endif
-        #if defined(__TIMESTAMP__)
-        ImGui::Text("Generated on: %s", __TIMESTAMP__);
-        #endif
-
-        ImGui::Separator();
-
-        #ifdef DEBUG
-        ImGui::Text("define: DEBUG");
-        #endif
-        #ifdef DEBUG_GEARSYSTEM
-        ImGui::Text("define: DEBUG_GEARSYSTEM");
-        #endif
-        #ifdef __cplusplus
-        ImGui::Text("define: __cplusplus = %d", (int)__cplusplus);
-        #endif
-        #ifdef __STDC__
-        ImGui::Text("define: __STDC__ = %d", (int)__STDC__);
-        #endif
-        #ifdef __STDC_VERSION__
-        ImGui::Text("define: __STDC_VERSION__ = %d", (int)__STDC_VERSION__);
-        #endif
-        
-        ImGui::Separator();
-
-        ImGui::Text("SDL %d.%d.%d (build)", application_sdl_build_version.major, application_sdl_build_version.minor, application_sdl_build_version.patch);
-        ImGui::Text("SDL %d.%d.%d (link) ", application_sdl_link_version.major, application_sdl_link_version.minor, application_sdl_link_version.patch);
-        ImGui::Text("OpenGL %s", renderer_opengl_version);
-        #ifndef __APPLE__
-        ImGui::Text("GLEW %s", renderer_glew_version);
-        #endif
-        ImGui::Text("Dear ImGui %s (%d)", IMGUI_VERSION, IMGUI_VERSION_NUM);
-
+        ImGui::NewLine();
         ImGui::Separator();
 
         for (int i = 0; i < 2; i++)
         {
             if (application_gamepad[i])
-                ImGui::Text("Gamepad detected for Player %d", i+1);
+                ImGui::Text("> Gamepad detected for Player %d", i+1);
             else
-                ImGui::Text("No gamepad detected for Player %d", i+1);
+                ImGui::Text("> No gamepad detected for Player %d", i+1);
         }
 
         if (application_gamepad_mappings > 0)
-            ImGui::Text("%d gamepad mappings loaded", application_gamepad_mappings);
+            ImGui::Text("%d game controller mappings loaded from gamecontrollerdb.txt", application_gamepad_mappings);
         else
-            ImGui::Text("Gamepad database not found");
+            ImGui::Text("ERROR: Game controller database not found (gamecontrollerdb.txt)!!");
 
         ImGui::Separator();
+        ImGui::NewLine();
 
         if (ImGui::Button("OK", ImVec2(120, 0))) 
         {
@@ -1876,4 +1936,109 @@ static Cartridge::CartridgeRegions get_region(int index)
         default:
             return Cartridge::CartridgeUnknownRegion;
     }
+}
+
+static void set_style(void)
+{
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    style.Alpha = 1.0f;
+    style.DisabledAlpha = 0.6000000238418579f;
+    style.WindowPadding = ImVec2(8.0f, 8.0f);
+    style.WindowRounding = 4.0f;
+    style.WindowBorderSize = 1.0f;
+    style.WindowMinSize = ImVec2(32.0f, 32.0f);
+    style.WindowTitleAlign = ImVec2(0.0f, 0.5f);
+    style.WindowMenuButtonPosition = ImGuiDir_Left;
+    style.ChildRounding = 0.0f;
+    style.ChildBorderSize = 1.0f;
+    style.PopupRounding = 4.0f;
+    style.PopupBorderSize = 1.0f;
+    style.FramePadding = ImVec2(4.0f, 3.0f);
+    style.FrameRounding = 2.5f;
+    style.FrameBorderSize = 0.0f;
+    style.ItemSpacing = ImVec2(8.0f, 4.0f);
+    style.ItemInnerSpacing = ImVec2(4.0f, 4.0f);
+    style.CellPadding = ImVec2(4.0f, 2.0f);
+    style.IndentSpacing = 21.0f;
+    style.ColumnsMinSpacing = 6.0f;
+    style.ScrollbarSize = 11.0f;
+    style.ScrollbarRounding = 2.5f;
+    style.GrabMinSize = 10.0f;
+    style.GrabRounding = 2.0f;
+    style.TabRounding = 3.5f;
+    style.TabBorderSize = 0.0f;
+    style.TabMinWidthForCloseButton = 0.0f;
+    style.ColorButtonPosition = ImGuiDir_Right;
+    style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
+    style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
+
+    style.Colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+    style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.5921568870544434f, 0.5921568870544434f, 0.5921568870544434f, 1.0f);
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.060085229575634f, 0.060085229575634f, 0.06008583307266235f, 1.0f);
+    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.05882352963089943f, 0.05882352963089943f, 0.05882352963089943f, 1.0f);
+    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.1176470592617989f, 0.1176470592617989f, 0.1176470592617989f, 1.0f);
+    style.Colors[ImGuiCol_Border] = ImVec4(0.1802574992179871f, 0.1802556961774826f, 0.1802556961774826f, 1.0f);
+    style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.3058823645114899f, 0.3058823645114899f, 0.3058823645114899f, 1.0f);
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.1843137294054031f, 0.1843137294054031f, 0.1843137294054031f, 1.0f);
+    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.270386278629303f, 0.2703835666179657f, 0.2703848779201508f, 1.0f);
+    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.1450980454683304f, 0.1450980454683304f, 0.1490196138620377f, 1.0f);
+    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.1450980454683304f, 0.1450980454683304f, 0.1490196138620377f, 1.0f);
+    style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.1176470592617989f, 0.1176470592617989f, 0.1176470592617989f, 1.0f);
+    style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.1176470592617989f, 0.1176470592617989f, 0.1176470592617989f, 1.0f);
+    style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.6266094446182251f, 0.6266031861305237f, 0.6266063451766968f, 1.0f);
+    style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.9999899864196777f, 0.9999899864196777f, 1.0f, 1.0f);
+    style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.9999899864196777f, 0.9999899864196777f, 1.0f, 1.0f);
+    style.Colors[ImGuiCol_CheckMark] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_Button] = ImVec4(0.184547483921051f, 0.184547483921051f, 0.1845493316650391f, 1.0f);
+    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_Header] = ImVec4(0.1843137294054031f, 0.1843137294054031f, 0.1843137294054031f, 1.0f);
+    style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_Separator] = ImVec4(0.1803921610116959f, 0.1803921610116959f, 0.1803921610116959f, 1.0f);
+    style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.1803921610116959f, 0.1803921610116959f, 0.1803921610116959f, 1.0f);
+    style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.1803921610116959f, 0.1803921610116959f, 0.1803921610116959f, 1.0f);
+    style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.2489270567893982f, 0.2489245682954788f, 0.2489245682954788f, 1.0f);
+    style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(1.0f, 0.9999899864196777f, 0.9999899864196777f, 1.0f);
+    style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(1.0f, 0.9999899864196777f, 0.9999899864196777f, 1.0f);
+    style.Colors[ImGuiCol_Tab] = ImVec4(0.1450980454683304f, 0.1450980454683304f, 0.1490196138620377f, 1.0f);
+    style.Colors[ImGuiCol_TabHovered] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_TabActive] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.1450980454683304f, 0.1450980454683304f, 0.1490196138620377f, 1.0f);
+    style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_PlotLines] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.1882352977991104f, 0.1882352977991104f, 0.2000000029802322f, 1.0f);
+    style.Colors[ImGuiCol_TableBorderStrong] = ImVec4(0.3098039329051971f, 0.3098039329051971f, 0.3490196168422699f, 1.0f);
+    style.Colors[ImGuiCol_TableBorderLight] = ImVec4(0.2274509817361832f, 0.2274509817361832f, 0.2470588237047195f, 1.0f);
+    style.Colors[ImGuiCol_TableRowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    style.Colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.0f, 1.0f, 1.0f, 0.05999999865889549f);
+    style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.4117647058823529f, 0.7019607843137254f, 0.01568627450980392f, 1.0f);
+    style.Colors[ImGuiCol_DragDropTarget] = ImVec4(0.1450980454683304f, 0.1450980454683304f, 0.1490196138620377f, 1.0f);
+    style.Colors[ImGuiCol_NavHighlight] = ImVec4(0.1450980454683304f, 0.1450980454683304f, 0.1490196138620377f, 1.0f);
+    style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.0f, 1.0f, 1.0f, 0.699999988079071f);
+    style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.2000000029802322f);
+    style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.1450980454683304f, 0.1450980454683304f, 0.1490196138620377f, 0.7f);
+
+    style.Colors[ImGuiCol_DockingPreview] = style.Colors[ImGuiCol_HeaderActive] * ImVec4(1.0f, 1.0f, 1.0f, 0.7f);
+    style.Colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+    style.Colors[ImGuiCol_TabHovered] = style.Colors[ImGuiCol_HeaderHovered];
+    //style.Colors[ImGuiCol_Tab] = lerp(style.Colors[ImGuiCol_Header], style.Colors[ImGuiCol_TitleBgActive], 0.80f);
+    style.Colors[ImGuiCol_TabSelected] = lerp(style.Colors[ImGuiCol_HeaderActive], style.Colors[ImGuiCol_TitleBgActive], 0.60f);
+    style.Colors[ImGuiCol_TabSelectedOverline] = style.Colors[ImGuiCol_HeaderActive];
+    style.Colors[ImGuiCol_TabDimmed] = lerp(style.Colors[ImGuiCol_Tab], style.Colors[ImGuiCol_TitleBg], 0.80f);
+    style.Colors[ImGuiCol_TabDimmedSelected] = lerp(style.Colors[ImGuiCol_TabSelected], style.Colors[ImGuiCol_TitleBg], 0.40f);
+    style.Colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+}
+
+static ImVec4 lerp(const ImVec4& a, const ImVec4& b, float t)
+{
+    return ImVec4(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, a.w + (b.w - a.w) * t);
 }

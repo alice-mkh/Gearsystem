@@ -19,7 +19,7 @@
 
 #include <SDL.h>
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_sdl.h"
+#include "imgui/imgui_impl_sdl2.h"
 #include "emu.h"
 #include "gui.h"
 #include "gui_debug.h"
@@ -49,7 +49,8 @@ static void save_window_size(void);
 
 int application_init(const char* rom_file, const char* symbol_file)
 {
-    Log ("<·> %s %s Desktop App <·>", GEARSYSTEM_TITLE, GEARSYSTEM_VERSION);
+    Log("\n%s", GEARSYSTEM_TITLE_ASCII);
+    Log("%s %s Desktop App", GEARSYSTEM_TITLE, GEARSYSTEM_VERSION);
 
     config_init();
     config_read();
@@ -94,6 +95,7 @@ void application_destroy(void)
     config_write();
     config_destroy();
     renderer_destroy();
+    ImGui_ImplSDL2_Shutdown();
     gui_destroy();
     emu_destroy();
     sdl_destroy();
@@ -130,6 +132,11 @@ void application_trigger_fit_to_content(int width, int height)
     SDL_SetWindowSize(sdl_window, width, height);
 }
 
+void application_update_title(char* title)
+{
+    SDL_SetWindowTitle(sdl_window, title);
+}
+
 static int sdl_init(void)
 {
 #ifdef _WIN32
@@ -144,6 +151,9 @@ static int sdl_init(void)
 
     SDL_VERSION(&application_sdl_build_version);
     SDL_GetVersion(&application_sdl_link_version);
+
+    Log("Using SDL %d.%d.%d (build)", application_sdl_build_version.major, application_sdl_build_version.minor, application_sdl_build_version.patch);
+    Log("Using SDL %d.%d.%d (link) ", application_sdl_link_version.major, application_sdl_link_version.minor, application_sdl_link_version.patch);
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -162,7 +172,7 @@ static int sdl_init(void)
 
     if (application_gamepad_mappings > 0)
     {
-        Log("Succesfuly loaded %d game controller mappings", application_gamepad_mappings);
+        Debug("Succesfuly loaded %d game controller mappings", application_gamepad_mappings);
     }
     else
     {
@@ -183,7 +193,7 @@ static int sdl_init(void)
             }
             else
             {
-                Log("Game controller %d correctly detected", i);
+                Debug("Game controller %d correctly detected", i);
                 gamepads_found++;
 
                 if (gamepads_found > 2)
@@ -214,7 +224,6 @@ static void sdl_destroy(void)
 {
     SDL_GameControllerClose(application_gamepad[0]);
     SDL_GameControllerClose(application_gamepad[1]);
-    ImGui_ImplSDL2_Shutdown();
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(sdl_window);
     SDL_Quit();
@@ -227,6 +236,12 @@ static void sdl_events(void)
     while (SDL_PollEvent(&event))
     {
         if (event.type == SDL_QUIT)
+        {
+            running = false;
+            break;
+        }
+
+        if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(sdl_window))
         {
             running = false;
             break;
@@ -250,7 +265,8 @@ static void sdl_events_emu(const SDL_Event* event)
         {
             char* dropped_filedir = event->drop.file;
             gui_load_rom(dropped_filedir);
-            SDL_free(dropped_filedir);    // Free dropped_filedir memory
+            SDL_free(dropped_filedir);
+            SDL_SetWindowInputFocus(sdl_window);
             break;
         }
         case SDL_WINDOWEVENT:
@@ -492,26 +508,6 @@ static void handle_mouse_cursor(void)
 
 static void run_emulator(void)
 {
-    static char prevtitle[256];
-
-    if (!emu_is_empty())
-    {
-        static int i = 0;
-        i++;
-
-        if (i > 20)
-        {
-            i = 0;
-
-            char title[256];
-            sprintf(title, "%s %s - %s", GEARSYSTEM_TITLE, GEARSYSTEM_VERSION, emu_get_core()->GetCartridge()->GetFileName());
-
-            if (strcmp(title, prevtitle)) {
-                SDL_SetWindowTitle(sdl_window, title);
-                strcpy(prevtitle, title);
-            }
-        }
-    }
     config_emulator.paused = emu_is_paused();
     emu_audio_sync = config_audio.sync;
     emu_update();
@@ -520,7 +516,7 @@ static void run_emulator(void)
 static void render(void)
 {
     renderer_begin_render();
-    ImGui_ImplSDL2_NewFrame(sdl_window);  
+    ImGui_ImplSDL2_NewFrame();  
     gui_render();
     renderer_render();
     renderer_end_render();
@@ -530,11 +526,18 @@ static void render(void)
 
 static void frame_throttle(void)
 {
-    if (emu_is_empty() || emu_is_paused() || config_emulator.ffwd)
+    if (emu_is_empty() || emu_is_paused() || !emu_is_audio_open() || config_emulator.ffwd)
     {
         float elapsed = (float)((frame_time_end - frame_time_start) * 1000) / SDL_GetPerformanceFrequency();
 
         float min = 16.666f;
+
+        if (!emu_is_audio_open())
+        {
+            GS_RuntimeInfo runtime;
+            emu_get_runtime(runtime);
+            min = runtime.region == Region_NTSC ? 16.666f : 20.0f;
+        }
 
         if (config_emulator.ffwd)
         {

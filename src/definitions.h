@@ -37,8 +37,12 @@
 #define PERFORMANCE
 #endif
 
+#if !defined(EMULATOR_BUILD)
+    #define EMULATOR_BUILD "undefined"
+#endif
+
 #define GEARSYSTEM_TITLE "Gearsystem"
-#define GEARSYSTEM_VERSION "3.5.0"
+#define GEARSYSTEM_VERSION EMULATOR_BUILD
 #define GEARSYSTEM_TITLE_ASCII "" \
 "   ____                               _                  \n" \
 "  / ___| ___  __ _ _ __ ___ _   _ ___| |_ ___ _ __ ___   \n" \
@@ -46,10 +50,6 @@
 " | |_| |  __/ (_| | |  \\__ \\ |_| \\__ \\ ||  __/ | | | | | \n" \
 "  \\____|\\___|\\__,_|_|  |___/\\__, |___/\\__\\___|_| |_| |_| \n" \
 "                            |___/                        \n"
-
-#ifndef EMULATOR_BUILD
-#define EMULATOR_BUILD "undefined"
-#endif
 
 #ifndef NULL
 #define NULL 0
@@ -180,35 +180,6 @@ struct GS_RuntimeInfo
     GS_Region region;
 };
 
-#ifdef DEBUG_GEARSYSTEM
-
-#ifdef __ANDROID__
-#include <android/log.h>
-#define printf(...) __android_log_print(ANDROID_LOG_DEBUG, "GEARSYSTEM", __VA_ARGS__);
-#endif
-
-#define Log(msg, ...) (Log_func(msg, ##__VA_ARGS__))
-
-inline void Log_func(const char* const msg, ...)
-{
-    static int count = 1;
-    char szBuf[512];
-
-    va_list args;
-    va_start(args, msg);
-    vsnprintf(szBuf, 512, msg, args);
-    va_end(args);
-
-    printf("%d: %s\n", count, szBuf);
-    fflush(stdout);
-
-    count++;
-}
-
-#else // DEBUG_GEARSYSTEM
-#define Log(msg, ...)
-#endif
-
 inline u8 SetBit(const u8 value, const u8 bit)
 {
     return value | (0x01 << bit);
@@ -253,5 +224,19 @@ inline unsigned int Pow2Ceil(u16 n)
     ++n;
     return n;
 }
+
+#if !defined(DEBUG_GEARSYSTEM)
+    #if defined(__GNUC__) || defined(__clang__)
+        #if !defined(__OPTIMIZE__) && !defined(__OPTIMIZE_SIZE__)
+            #warning "Compiling without optimizations."
+            #define GEARSYSTEM_NO_OPTIMIZATIONS
+        #endif
+    #elif defined(_MSC_VER)
+        #if !defined(NDEBUG)
+            #pragma message("Compiling without optimizations.")
+            #define GEARSYSTEM_NO_OPTIMIZATIONS
+        #endif
+    #endif
+#endif
 
 #endif	/* DEFINITIONS_H */

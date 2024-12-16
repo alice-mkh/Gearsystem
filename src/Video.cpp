@@ -412,7 +412,7 @@ void Video::WriteControl(u8 control)
 
         if (m_bSG1000 && (m_VdpCode == VDP_WRITE_CRAM_OPERATION))
         {
-            Log("--> ** SG-1000 Attempting to write on CRAM");
+            Debug("--> ** SG-1000 Attempting to write on CRAM");
         }
 
         switch (m_VdpCode)
@@ -438,7 +438,7 @@ void Video::WriteControl(u8 control)
                 }
                 else if (reg > 10)
                 {
-                    Log("--> ** Attempting to write on VDP REG %d: %X", reg, control);
+                    Debug("--> ** Attempting to write on VDP REG %d: %X", reg, control);
                 }
                 break;
             }
@@ -665,12 +665,10 @@ void Video::RenderSpritesSMSGG(int line)
     int line_width_screen = (line - scy_adjust) * m_iScreenWidth;
     int sprite_width = 8;
     bool sprite_height_16 = IsSetBit(m_VdpRegister[1], 1);
-    int sprite_height = sprite_height_16 ? 16 : 8;
     bool sprite_zoom = IsSetBit(m_VdpRegister[1], 0);
     if (sprite_zoom)
     {
         sprite_width <<= 1;
-        sprite_height <<= 1;
     }
     int sprite_shift = IsSetBit(m_VdpRegister[0], 3) ? 8 : 0;
     u16 sprite_tiles_address = (m_VdpRegister[6] << 11) & 0x2000;
