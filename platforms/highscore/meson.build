@@ -35,6 +35,7 @@ gearsystem_source = [
   '../../src/audio/Multi_Buffer.cpp',
   '../../src/audio/Sms_Apu.cpp',
   '../../src/audio/emu2413/emu2413.c',
+  '../../src/miniz/miniz.c',
 ]
 
 gearsystem_deps = [
