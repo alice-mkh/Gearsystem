@@ -41,7 +41,6 @@ gearsystem_hs_core_load_rom (HsCore      *core,
                              GError     **error)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-  GS_RuntimeInfo runtime_info;
 
   g_assert (n_rom_paths == 1);
 
@@ -58,21 +57,12 @@ gearsystem_hs_core_load_rom (HsCore      *core,
   self->context = hs_core_create_software_context (core,
                                                    GS_RESOLUTION_MAX_WIDTH_WITH_OVERSCAN,
                                                    GS_RESOLUTION_MAX_HEIGHT_WITH_OVERSCAN,
-                                                   HS_PIXEL_FORMAT_R8G8B8);
-
-  self->core->GetRuntimeInfo (runtime_info);
-
-  int width = runtime_info.screen_width;
-  int height = runtime_info.screen_height;
-  HsRectangle area = HS_RECTANGLE_INIT (0, 0, width, height);
-
-  hs_software_context_set_area (self->context, &area);
-  hs_software_context_set_row_stride (self->context, width * 3);
-
+                                                   HS_PIXEL_FORMAT_R8G8B8X8);
   self->core->GetAudio ()->Mute (false);
 
   HsPlatform platform = hs_core_get_platform (core);
   self->core->GetAudio ()->DisableYM2413 (platform != HS_PLATFORM_MASTER_SYSTEM || !self->enable_fm_audio);
+  self->core->GetVideo ()->SetHideLeftBar (Video::HideLeftBarAuto);
 
   return TRUE;
 }
@@ -158,6 +148,17 @@ gearsystem_hs_core_run_frame (HsCore *core)
   int n_audio_samples;
 
   self->core->RunToVBlank (video_buffer, audio_buffer, &n_audio_samples);
+
+  GS_RuntimeInfo runtime_info;
+  self->core->GetRuntimeInfo (runtime_info);
+
+  int width = runtime_info.screen_width;
+  int height = runtime_info.screen_height;
+  HsRectangle area = HS_RECTANGLE_INIT (0, 0, width, height);
+
+  hs_software_context_set_area (self->context, &area);
+  hs_software_context_set_row_stride (self->context, width * hs_pixel_format_get_pixel_size (HS_PIXEL_FORMAT_R8G8B8X8));
+
 
   hs_core_play_samples (core, audio_buffer, n_audio_samples);
 }
