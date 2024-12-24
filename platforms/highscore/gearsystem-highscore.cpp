@@ -62,7 +62,6 @@ gearsystem_hs_core_load_rom (HsCore      *core,
 
   HsPlatform platform = hs_core_get_platform (core);
   self->core->GetAudio ()->DisableYM2413 (platform != HS_PLATFORM_MASTER_SYSTEM || !self->enable_fm_audio);
-  self->core->GetVideo ()->SetHideLeftBar (Video::HideLeftBarAuto);
 
   return TRUE;
 }
