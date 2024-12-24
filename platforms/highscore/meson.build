@@ -16,6 +16,7 @@ gearsystem_source = [
   '../../src/GearsystemCore.cpp',
   '../../src/Input.cpp',
   '../../src/JanggunMemoryRule.cpp',
+  '../../src/Korean0000XORFFMemoryRule.cpp',
   '../../src/Korean2000XOR1FMemoryRule.cpp',
   '../../src/KoreanMemoryRule.cpp',
   '../../src/KoreanMSX32KB2000MemoryRule.cpp',
