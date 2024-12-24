@@ -29,6 +29,11 @@
 #include "CodemastersMemoryRule.h"
 #include "RomOnlyMemoryRule.h"
 #include "KoreanMemoryRule.h"
+#include "KoreanMSXSMS8000MemoryRule.h"
+#include "KoreanSMS32KB2000MemoryRule.h"
+#include "KoreanMSX32KB2000MemoryRule.h"
+#include "Korean2000XOR1FMemoryRule.h"
+#include "KoreanMSX8KB0300MemoryRule.h"
 #include "MSXMemoryRule.h"
 #include "JanggunMemoryRule.h"
 #include "SG1000MemoryRule.h"
@@ -49,13 +54,18 @@ GearsystemCore::GearsystemCore()
     InitPointer(m_pSG1000MemoryRule);
     InitPointer(m_pRomOnlyMemoryRule);
     InitPointer(m_pKoreanMemoryRule);
+    InitPointer(m_pKoreanMSXSMS8000MemoryRule);
+    InitPointer(m_pKoreanSMS32KB2000MemoryRule);
+    InitPointer(m_pKoreanMSX32KB2000MemoryRule);
+    InitPointer(m_pKorean2000XOR1FMemoryRule);
+    InitPointer(m_pKoreanMSX8KB0300MemoryRule);
     InitPointer(m_pMSXMemoryRule);
     InitPointer(m_pJanggunMemoryRule);
     InitPointer(m_pSmsIOPorts);
     InitPointer(m_pGameGearIOPorts);
     InitPointer(m_pBootromMemoryRule);
     m_bPaused = true;
-    m_pixelFormat = GS_PIXEL_RGB888;
+    m_pixelFormat = GS_PIXEL_RGBA8888;
     m_GlassesConfig = GearsystemCore::GlassesBothEyes;
 }
 
@@ -69,6 +79,11 @@ GearsystemCore::~GearsystemCore()
     SafeDelete(m_pSG1000MemoryRule);
     SafeDelete(m_pSegaMemoryRule);
     SafeDelete(m_pKoreanMemoryRule);
+    SafeDelete(m_pKoreanMSXSMS8000MemoryRule);
+    SafeDelete(m_pKoreanSMS32KB2000MemoryRule);
+    SafeDelete(m_pKoreanMSX32KB2000MemoryRule);
+    SafeDelete(m_pKorean2000XOR1FMemoryRule);
+    SafeDelete(m_pKoreanMSX8KB0300MemoryRule);
     SafeDelete(m_pMSXMemoryRule);
     SafeDelete(m_pJanggunMemoryRule);
     SafeDelete(m_pCartridge);
@@ -258,7 +273,7 @@ bool GearsystemCore::GetRuntimeInfo(GS_RuntimeInfo& runtime_info)
         }
         else
         {
-            runtime_info.screen_width = GS_RESOLUTION_SMS_WIDTH;
+            runtime_info.screen_width = GS_RESOLUTION_SMS_WIDTH - m_pVideo->GetHideLeftBarOffset();
             runtime_info.screen_height = m_pVideo->IsExtendedMode224() ? GS_RESOLUTION_SMS_HEIGHT_EXTENDED : GS_RESOLUTION_SMS_HEIGHT;
 
             if (m_pVideo->GetOverscan() == Video::OverscanFull284)
@@ -845,10 +860,14 @@ void GearsystemCore::InitMemoryRules()
     m_pSegaMemoryRule = new SegaMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pRomOnlyMemoryRule = new RomOnlyMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pKoreanMemoryRule = new KoreanMemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKoreanMSXSMS8000MemoryRule = new KoreanMSXSMS8000MemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKoreanSMS32KB2000MemoryRule = new KoreanSMS32KB2000MemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKoreanMSX32KB2000MemoryRule = new KoreanMSX32KB2000MemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKorean2000XOR1FMemoryRule = new Korean2000XOR1FMemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKoreanMSX8KB0300MemoryRule = new KoreanMSX8KB0300MemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pMSXMemoryRule = new MSXMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pJanggunMemoryRule = new JanggunMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pBootromMemoryRule = new BootromMemoryRule(m_pMemory, m_pCartridge, m_pInput);
-
     m_pMemory->SetCurrentRule(m_pRomOnlyMemoryRule);
     m_pMemory->SetBootromRule(m_pBootromMemoryRule);
     m_pProcessor->SetIOPOrts(m_pSmsIOPorts);
@@ -876,6 +895,21 @@ bool GearsystemCore::AddMemoryRules()
             break;
         case Cartridge::CartridgeKoreanMapper:
             m_pMemory->SetCurrentRule(m_pKoreanMemoryRule);
+            break;
+        case Cartridge::CartridgeKoreanMSXSMS8000Mapper:
+            m_pMemory->SetCurrentRule(m_pKoreanMSXSMS8000MemoryRule);
+            break;
+        case Cartridge::CartridgeKoreanSMS32KB2000Mapper:
+            m_pMemory->SetCurrentRule(m_pKoreanSMS32KB2000MemoryRule);
+            break;
+        case Cartridge::CartridgeKoreanMSX32KB2000Mapper:
+            m_pMemory->SetCurrentRule(m_pKoreanMSX32KB2000MemoryRule);
+            break;
+        case Cartridge::CartridgeKorean2000XOR1FMapper:
+            m_pMemory->SetCurrentRule(m_pKorean2000XOR1FMemoryRule);
+            break;
+        case Cartridge::CartridgeKoreanMSX8KB0300Mapper:
+            m_pMemory->SetCurrentRule(m_pKoreanMSX8KB0300MemoryRule);
             break;
         case Cartridge::CartridgeMSXMapper:
             m_pMemory->SetCurrentRule(m_pMSXMemoryRule);
@@ -916,6 +950,11 @@ void GearsystemCore::Reset()
     m_pSG1000MemoryRule->Reset();
     m_pRomOnlyMemoryRule->Reset();
     m_pKoreanMemoryRule->Reset();
+    m_pKoreanMSXSMS8000MemoryRule->Reset();
+    m_pKoreanSMS32KB2000MemoryRule->Reset();
+    m_pKoreanMSX32KB2000MemoryRule->Reset();
+    m_pKorean2000XOR1FMemoryRule->Reset();
+    m_pKoreanMSX8KB0300MemoryRule->Reset();
     m_pMSXMemoryRule->Reset();
     m_pJanggunMemoryRule->Reset();
     m_pBootromMemoryRule->Reset();
@@ -948,10 +987,10 @@ void GearsystemCore::RenderFrameBuffer(u8* finalFrameBuffer)
             m_pVideo->Render16bit(m_pVideo->GetFrameBuffer(), finalFrameBuffer, m_pixelFormat, size, true);
             break;
         }
-        case GS_PIXEL_RGB888:
-        case GS_PIXEL_BGR888:
+        case GS_PIXEL_RGBA8888:
+        case GS_PIXEL_BGRA8888:
         {
-            m_pVideo->Render24bit(m_pVideo->GetFrameBuffer(), finalFrameBuffer, m_pixelFormat, size, true);
+            m_pVideo->Render32bit(m_pVideo->GetFrameBuffer(), finalFrameBuffer, m_pixelFormat, size, true);
             break;
         }
     }

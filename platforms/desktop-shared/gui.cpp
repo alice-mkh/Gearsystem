@@ -137,6 +137,7 @@ void gui_init(void)
     emu_enable_bootrom_gg(config_emulator.gg_bootrom);
     emu_set_media_slot(config_emulator.media);
     emu_set_overscan(config_debug.debug ? 0 : config_video.overscan);
+    emu_set_hide_left_bar(config_video.hide_left_bar);
     emu_disable_ym2413(config_audio.ym2413 == 1);
 }
 
@@ -501,8 +502,8 @@ static void main_menu(void)
 
             if (ImGui::BeginMenu("Mapper"))
             {
-                ImGui::PushItemWidth(130.0f);
-                ImGui::Combo("##emu_mapper", &config_emulator.mapper, "Auto\0ROM Only\0SEGA\0Codemasters\0Korean\0SG-1000\0MSX\0Janggun\0\0");
+                ImGui::PushItemWidth(220.0f);
+                ImGui::Combo("##emu_mapper", &config_emulator.mapper, "Auto\0ROM Only\0SEGA\0Codemasters\0Korean\0SG-1000\0MSX\0Janggun\0Korean Multi 2000 XOR F1\0Korean Multi MSX 32KB 2000\0Korean Multi MSX SMS 8000\0Korean Multi SMS 32KB 2000\0Korean Multi MSX 8KB 0300\0\0");
                 ImGui::PopItemWidth();
                 ImGui::EndMenu();
             }
@@ -733,10 +734,8 @@ static void main_menu(void)
 
             if (ImGui::MenuItem("Resize Window to Content"))
             {
-                if (!config_debug.debug && (config_video.ratio != 3))
-                {
+                if (!config_debug.debug)
                     application_trigger_fit_to_content(main_window_width, main_window_height + main_menu_height);
-                }
             }
 
             ImGui::Separator();
@@ -754,7 +753,7 @@ static void main_menu(void)
             if (ImGui::BeginMenu("Aspect Ratio"))
             {
                 ImGui::PushItemWidth(200.0f);
-                ImGui::Combo("##ratio", &config_video.ratio, "Square Pixels (1:1 PAR)\0Standard (4:3 DAR)\0Wide (16:9 DAR)\0\0");
+                ImGui::Combo("##ratio", &config_video.ratio, "Square Pixels (1:1 PAR)\0Standard (4:3 DAR)\0Wide (16:9 DAR)\0Wide (16:10 DAR)\0\0");
                 ImGui::PopItemWidth();
                 ImGui::EndMenu();
             }
@@ -765,6 +764,17 @@ static void main_menu(void)
                 if (ImGui::Combo("##overscan", &config_video.overscan, "Disabled\0Top+Bottom\0Full (284 width)\0Full (320 width)\0\0"))
                 {
                     emu_set_overscan(config_debug.debug ? 0 : config_video.overscan);
+                }
+                ImGui::PopItemWidth();
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Hide Left Bar"))
+            {
+                ImGui::PushItemWidth(80.0f);
+                if (ImGui::Combo("##hide_left_bar", &config_video.hide_left_bar, "No\0Auto\0Always\0\0"))
+                {
+                    emu_set_hide_left_bar(config_debug.debug ? 0 : config_video.hide_left_bar);
                 }
                 ImGui::PopItemWidth();
                 ImGui::EndMenu();
@@ -961,6 +971,7 @@ static void main_menu(void)
             if (ImGui::MenuItem("Enable", "", &config_debug.debug))
             {
                 emu_set_overscan(config_debug.debug ? 0 : config_video.overscan);
+                emu_set_hide_left_bar(config_debug.debug ? 0 : config_video.hide_left_bar);
 
                 if (config_debug.debug)
                     emu_debug_step();
@@ -1149,6 +1160,9 @@ static void main_window(void)
         case 2:
             ratio = 16.0f / 9.0f;
             break;
+        case 3:
+            ratio = 16.0f / 10.0f;
+            break;
         default:
             ratio = (float)runtime.screen_width / (float)runtime.screen_height;
     }
@@ -1231,8 +1245,8 @@ static void main_window(void)
         gui_main_window_hovered = ImGui::IsWindowHovered();
     }
 
-    float tex_h = (float)runtime.screen_width / (float)(GS_RESOLUTION_MAX_WIDTH_WITH_OVERSCAN);
-    float tex_v = (float)runtime.screen_height / (float)(GS_RESOLUTION_MAX_HEIGHT_WITH_OVERSCAN);
+    float tex_h = (float)runtime.screen_width / (float)(SYSTEM_TEXTURE_WIDTH);
+    float tex_v = (float)runtime.screen_height / (float)(SYSTEM_TEXTURE_HEIGHT);
 
     ImGui::Image((ImTextureID)(intptr_t)renderer_emu_texture, ImVec2((float)main_window_width, (float)main_window_height), ImVec2(0, 0), ImVec2(tex_h, tex_v));
 
@@ -1879,6 +1893,16 @@ static Cartridge::CartridgeTypes get_mapper(int index)
             return Cartridge::CartridgeMSXMapper;
         case 7:
             return Cartridge::CartridgeJanggunMapper;
+        case 8:
+            return Cartridge::CartridgeKorean2000XOR1FMapper;
+        case 9:
+            return Cartridge::CartridgeKoreanMSX32KB2000Mapper;
+        case 10:
+            return Cartridge::CartridgeKoreanMSXSMS8000Mapper;
+        case 11:
+            return Cartridge::CartridgeKoreanSMS32KB2000Mapper;
+        case 12:
+            return Cartridge::CartridgeKoreanMSX8KB0300Mapper;
         default:
             return Cartridge::CartridgeNotSupported;
     }

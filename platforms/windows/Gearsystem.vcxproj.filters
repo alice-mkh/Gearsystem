@@ -105,6 +105,9 @@
     <ClCompile Include="..\..\src\KoreanMemoryRule.cpp">
       <Filter>core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\KoreanMSXSMS8000MemoryRule.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\Memory.cpp">
       <Filter>core</Filter>
     </ClCompile>
@@ -170,6 +173,18 @@
     </ClCompile>
     <ClCompile Include="..\..\src\miniz\miniz.c">
       <Filter>src\miniz</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\KoreanSMS32KB2000MemoryRule.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\KoreanMSX32KB2000MemoryRule.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Korean2000XOR1FMemoryRule.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\KoreanMSX8KB0300MemoryRule.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -270,6 +285,9 @@
       <Filter>core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\KoreanMemoryRule.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\KoreanMSXSMS8000MemoryRule.h">
       <Filter>core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Memory.h">
@@ -382,6 +400,18 @@
     </ClInclude>
     <ClInclude Include="..\..\src\miniz\miniz.h">
       <Filter>src\miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\KoreanSMS32KB2000MemoryRule.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\KoreanMSX32KB2000MemoryRule.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Korean2000XOR1FMemoryRule.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\KoreanMSX8KB0300MemoryRule.h">
+      <Filter>core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

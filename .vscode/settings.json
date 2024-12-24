@@ -66,6 +66,11 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "optional": "cpp",
-        "*.def": "cpp"
+        "*.def": "cpp",
+        "variant": "cpp",
+        "__bit_reference": "cpp",
+        "__node_handle": "cpp",
+        "bitset": "cpp",
+        "locale": "cpp"
     }
 }

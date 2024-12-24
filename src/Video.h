@@ -22,11 +22,6 @@
 
 #include "definitions.h"
 
-#define VDP_READ_VRAM_OPERATION 0x00
-#define VDP_WRITE_VRAM_OPERATION 0x01
-#define VDP_WRITE_REG_OPERATION 0x02
-#define VDP_WRITE_CRAM_OPERATION 0x03
-
 class Memory;
 class Processor;
 class Cartridge;
@@ -42,6 +37,13 @@ public:
         OverscanFull320
     };
 
+    enum HideLeftBar
+    {
+        HideLeftBarNo,
+        HideLeftBarAuto,
+        HideLeftBarAlways
+    };
+
 public:
     Video(Memory* pMemory, Processor* pProcessor, Cartridge* pCartridge);
     ~Video();
@@ -55,29 +57,33 @@ public:
     bool IsExtendedMode224();
     bool IsSG1000Mode();
     void WriteData(u8 data);
-    void WriteControl(u8 control);
+    void WriteControl(u8 data);
     void LatchHCounter();
     void SaveState(std::ostream& stream);
     void LoadState(std::istream& stream);
     u8* GetVRAM();
     u8* GetCRAM();
     u8* GetRegisters();
-    int GetSG1000Mode();
+    int GetTMS9918Mode();
     u16 ColorFromPalette(int palette_color);
     u16* GetFrameBuffer();
-    void Render24bit(u16* srcFrameBuffer, u8* dstFrameBuffer, GS_Color_Format pixelFormat, int size, bool overscan = false);
+    void Render32bit(u16* srcFrameBuffer, u8* dstFrameBuffer, GS_Color_Format pixelFormat, int size, bool overscan = false);
     void Render16bit(u16* srcFrameBuffer, u8* dstFrameBuffer, GS_Color_Format pixelFormat, int size, bool overscan = false);
     void SetOverscan(Overscan overscan);
     Overscan GetOverscan();
+    void SetHideLeftBar(HideLeftBar hideLeftBar);
+    HideLeftBar GetHideLeftBar();
+    int GetHideLeftBarOffset();
 
 private:
     void ScanLine(int line);
     void RenderBackgroundSMSGG(int line);
-    void RenderBackgroundSG1000(int line);
+    void RenderBackgroundTMS9918(int line);
     void ParseSpritesSMSGG(int line);
     void RenderSpritesSMSGG(int line);
-    void RenderSpritesSG1000(int line);
+    void RenderSpritesTMS9918(int line);
     void InitPalettes(const u8* src, u16* dest_565_rgb, u16* dest_555_rgb, u16* dest_565_bgr, u16* dest_555_bgr);
+    int CalculateVideoMode();
 
 private:
     Memory* m_pMemory;
@@ -104,6 +110,8 @@ private:
     bool m_bPAL;
     bool m_bExtendedMode224;
     Overscan m_Overscan;
+    HideLeftBar m_HideLeftBar;
+    int m_iHideLeftBarOffset;
 
     struct LineEvents 
     {
@@ -120,8 +128,8 @@ private:
 
     int m_iRenderLine;
     int m_iScreenWidth;
-    bool m_bSG1000;
-    int m_iSG1000Mode;
+    bool m_bTMS9918;
+    int m_iTMS9918Mode;
 
     enum Timing
     {
@@ -165,9 +173,9 @@ inline u8* Video::GetRegisters()
     return m_VdpRegister;
 }
 
-inline int Video::GetSG1000Mode()
+inline int Video::GetTMS9918Mode()
 {
-    return m_iSG1000Mode;
+    return m_iTMS9918Mode;
 }
 
 inline u16 Video::ColorFromPalette(int palette_color)

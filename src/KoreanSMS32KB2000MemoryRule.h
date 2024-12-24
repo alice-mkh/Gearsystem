@@ -17,41 +17,27 @@
  *
  */
 
-#ifndef MEMORYRULE_H
-#define	MEMORYRULE_H
+#ifndef KOREANSMS32KB2000MEMORYRULE_H
+#define	KOREANSMS32KB2000MEMORYRULE_H
 
-#include "definitions.h"
+#include "MemoryRule.h"
 
-class Memory;
-class Cartridge;
-class Input;
-
-class MemoryRule
+class KoreanSMS32KB2000MemoryRule : public MemoryRule
 {
 public:
-    MemoryRule(Memory* pMemory, Cartridge* pCartridge, Input* pInput);
-    virtual ~MemoryRule();
-    virtual u8 PerformRead(u16 address) = 0;
-    virtual void PerformWrite(u16 address, u8 value) = 0;
-    virtual void Reset() = 0;
-    virtual void SaveRam(std::ostream &file);
-    virtual bool LoadRam(std::istream &file, s32 fileSize);
-    virtual void SetRamChangedCallback(RamChangedCallback callback);
-    virtual bool PersistedRAM();
-    virtual size_t GetRamSize();
-    virtual u8* GetRamBanks();
-    virtual int GetRamBank();
+    KoreanSMS32KB2000MemoryRule(Memory* pMemory, Cartridge* pCartridge, Input* pInput);
+    virtual ~KoreanSMS32KB2000MemoryRule();
+    virtual u8 PerformRead(u16 address);
+    virtual void PerformWrite(u16 address, u8 value);
+    virtual void Reset();
     virtual u8* GetPage(int index);
     virtual int GetBank(int index);
-    virtual bool Has8kBanks();
     virtual void SaveState(std::ostream& stream);
     virtual void LoadState(std::istream& stream);
 
-protected:
-    Memory* m_pMemory;
-    Cartridge* m_pCartridge;
-    Input* m_pInput;
-    RamChangedCallback m_pRamChangedCallback;
+private:
+    int m_iMapperSlot[3];
+    int m_iMapperSlotAddress[3];
 };
 
-#endif	/* MEMORYRULE_H */
+#endif	/* KOREANSMS32KB2000MEMORYRULE_H */

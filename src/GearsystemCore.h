@@ -33,6 +33,11 @@ class CodemastersMemoryRule;
 class RomOnlyMemoryRule;
 class SG1000MemoryRule;
 class KoreanMemoryRule;
+class KoreanMSXSMS8000MemoryRule;
+class KoreanSMS32KB2000MemoryRule;
+class KoreanMSX32KB2000MemoryRule;
+class Korean2000XOR1FMemoryRule;
+class KoreanMSX8KB0300MemoryRule;
 class MSXMemoryRule;
 class JanggunMemoryRule;
 class MemoryRule;
@@ -53,7 +58,7 @@ public:
 public:
     GearsystemCore();
     ~GearsystemCore();
-    void Init(GS_Color_Format pixelFormat = GS_PIXEL_RGB888);
+    void Init(GS_Color_Format pixelFormat = GS_PIXEL_RGBA8888);
     bool RunToVBlank(u8* pFrameBuffer, s16* pSampleBuffer, int* pSampleCount, bool step = false, bool stopOnBreakpoints = false);
     bool LoadROM(const char* szFilePath, Cartridge::ForceConfiguration* config = NULL);
     bool LoadROMFromBuffer(const u8* buffer, int size, Cartridge::ForceConfiguration* config = NULL, const char* szFilePath = NULL);
@@ -107,6 +112,11 @@ private:
     SG1000MemoryRule* m_pSG1000MemoryRule;
     RomOnlyMemoryRule* m_pRomOnlyMemoryRule;
     KoreanMemoryRule* m_pKoreanMemoryRule;
+    KoreanMSXSMS8000MemoryRule* m_pKoreanMSXSMS8000MemoryRule;
+    KoreanSMS32KB2000MemoryRule* m_pKoreanSMS32KB2000MemoryRule;
+    KoreanMSX32KB2000MemoryRule* m_pKoreanMSX32KB2000MemoryRule;
+    Korean2000XOR1FMemoryRule* m_pKorean2000XOR1FMemoryRule;
+    KoreanMSX8KB0300MemoryRule* m_pKoreanMSX8KB0300MemoryRule;
     MSXMemoryRule* m_pMSXMemoryRule;
     JanggunMemoryRule* m_pJanggunMemoryRule;
     SmsIOPorts* m_pSmsIOPorts;

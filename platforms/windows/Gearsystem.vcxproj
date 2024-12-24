@@ -34,6 +34,8 @@
     <ClCompile Include="..\..\src\Input.cpp" />
     <ClCompile Include="..\..\src\JanggunMemoryRule.cpp" />
     <ClCompile Include="..\..\src\KoreanMemoryRule.cpp" />
+    <ClCompile Include="..\..\src\KoreanMSXSMS8000MemoryRule.cpp" />
+    <ClCompile Include="..\..\src\KoreanSMS32KB2000MemoryRule.cpp" />
     <ClCompile Include="..\..\src\Memory.cpp" />
     <ClCompile Include="..\..\src\MemoryRule.cpp" />
     <ClCompile Include="..\..\src\MSXMemoryRule.cpp" />
@@ -65,6 +67,9 @@
     <ClCompile Include="..\desktop-shared\main.cpp" />
     <ClCompile Include="..\desktop-shared\nfd\nfd_win.cpp" />
     <ClCompile Include="..\desktop-shared\renderer.cpp" />
+    <ClCompile Include="..\..\src\KoreanMSX32KB2000MemoryRule.cpp" />
+    <ClCompile Include="..\..\src\Korean2000XOR1FMemoryRule.cpp" />
+    <ClCompile Include="..\..\src\KoreanMSX8KB0300MemoryRule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\miniz\miniz.h" />
@@ -92,6 +97,8 @@
     <ClInclude Include="..\..\src\IOPorts.h" />
     <ClInclude Include="..\..\src\JanggunMemoryRule.h" />
     <ClInclude Include="..\..\src\KoreanMemoryRule.h" />
+    <ClInclude Include="..\..\src\KoreanMSXSMS8000MemoryRule.h" />
+    <ClInclude Include="..\..\src\KoreanSMS32KB2000MemoryRule.h" />
     <ClInclude Include="..\..\src\Memory.h" />
     <ClInclude Include="..\..\src\MemoryRule.h" />
     <ClInclude Include="..\..\src\Memory_inline.h" />
@@ -136,6 +143,9 @@
     <ClInclude Include="..\desktop-shared\imgui\memory_editor.h" />
     <ClInclude Include="..\desktop-shared\mINI\ini.h" />
     <ClInclude Include="..\desktop-shared\renderer.h" />
+    <ClInclude Include="..\..\src\KoreanMSX32KB2000MemoryRule.h" />
+    <ClInclude Include="..\..\src\Korean2000XOR1FMemoryRule.h" />
+    <ClInclude Include="..\..\src\KoreanMSX8KB0300MemoryRule.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\desktop-shared\gui_events.def" />
