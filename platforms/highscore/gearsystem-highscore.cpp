@@ -1,6 +1,7 @@
 #include "gearsystem-highscore.h"
 
 #include <gearsystem.h>
+#include <math.h>
 
 struct _GearsystemHsCore
 {
@@ -12,6 +13,8 @@ struct _GearsystemHsCore
 
   char *save_path;
   gboolean enable_fm_audio;
+
+  gboolean enable_light_phaser;
 };
 
 static void gearsystem_game_gear_core_init (HsGameGearCoreInterface *iface);
@@ -98,12 +101,33 @@ gearsystem_hs_core_poll_input (HsCore *core, HsInputState *input_state)
       uint32_t buttons = input_state->master_system.pad_buttons[player];
       GS_Joypads joypad = (player == 0) ? Joypad_1 : Joypad_2;
 
+      if (self->enable_light_phaser && player == 0)
+        continue;
+
       for (int btn = 0; btn < HS_MASTER_SYSTEM_N_BUTTONS; btn++) {
         if (buttons & 1 << btn)
           self->core->KeyPressed (joypad, (GS_Keys) btn);
         else
           self->core->KeyReleased (joypad, (GS_Keys) btn);
       }
+    }
+
+    if (self->enable_light_phaser) {
+      GS_RuntimeInfo runtime_info;
+      self->core->GetRuntimeInfo (runtime_info);
+
+      double x = input_state->master_system.light_phaser_x;
+      double y = input_state->master_system.light_phaser_y;
+
+      int width = runtime_info.screen_width;
+      int height = runtime_info.screen_height;
+
+      self->core->SetPhaser ((int) round (x * width), (int) round (y * height));
+
+      if (input_state->master_system.light_phaser_fire)
+        self->core->KeyPressed (Joypad_1, Key_1);
+      else
+        self->core->KeyReleased (Joypad_1, Key_1);
     }
 
     if (input_state->master_system.pause_button)
@@ -370,9 +394,21 @@ gearsystem_master_system_core_set_enable_fm_audio (HsMasterSystemCore *core,
 }
 
 static void
+gearsystem_master_system_core_set_enable_light_phaser (HsMasterSystemCore *core,
+                                                       gboolean            enable_light_phaser)
+{
+  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
+
+  self->enable_light_phaser = enable_light_phaser;
+
+  self->core->EnablePhaser (enable_light_phaser);
+}
+
+static void
 gearsystem_master_system_core_init (HsMasterSystemCoreInterface *iface)
 {
   iface->set_enable_fm_audio = gearsystem_master_system_core_set_enable_fm_audio;
+  iface->set_enable_light_phaser = gearsystem_master_system_core_set_enable_light_phaser;
 }
 
 static void
