@@ -6,11 +6,8 @@ project('gearsystem-highscore', ['c', 'cpp'],
   ]
 )
 
-version = run_command('git', 'describe', '--always', '--tags', '--dirty').stdout().strip()
-
-if version == ''
-  version = meson.project_version()
-endif
+version = meson.project_version()
+commit = run_command('git', 'describe', '--always', '--dirty').stdout().strip()
 
 gearsystem_source = [
   'gearsystem-highscore.cpp',
@@ -97,6 +94,7 @@ shared_library('gearsystem-highscore',
 
 descriptor = configuration_data()
 descriptor.set('version', version)
+descriptor.set('commit', commit)
 configure_file(
   input: 'gearsystem.highscore.in',
   output: 'gearsystem.highscore',

@@ -1,6 +1,7 @@
 [Highscore]
 Name=Gearsystem
 Version=@version@
+Commit=@commit@
 Module=gearsystem-highscore.so
 Authors=Ignacio Sanchez;
 Copyright=Copyright (C) 2013 Ignacio Sanchez;
