@@ -138,6 +138,16 @@ void emu_key_released(GS_Joypads pad, GS_Keys key)
     gearsystem->KeyReleased(pad, key);
 }
 
+void emu_set_phaser(int x, int y)
+{
+    gearsystem->SetPhaser(x, y);
+}
+
+void emu_enable_phaser(bool enable)
+{
+    gearsystem->EnablePhaser(enable);
+}
+
 void emu_pause(void)
 {
     gearsystem->Pause(true);
@@ -500,6 +510,21 @@ static const char* get_mapper(Cartridge::CartridgeTypes type)
         break;
     case Cartridge::CartridgeKorean0000XORFFMapper:
         return "Korean 0000 XOR FF";
+        break;
+    case Cartridge::CartridgeKoreanFFFFHiComMapper:
+        return "Korean FFFF HiCom";
+        break;
+    case Cartridge::CartridgeKoreanFFFEMapper:
+        return "Korean FFFE";
+        break;
+    case Cartridge::CartridgeKoreanBFFCMapper:
+        return "Korean BFFC";
+        break;
+    case Cartridge::CartridgeKoreanFFF3FFFCMapper:
+        return "Korean FFF3 FFFC";
+        break;
+    case Cartridge::CartridgeKoreanMDFFF5Mapper:
+        return "Korean MD FFF5";
         break;
     case Cartridge::CartridgeMSXMapper:
         return "MSX";

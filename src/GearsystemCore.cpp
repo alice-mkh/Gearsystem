@@ -35,6 +35,11 @@
 #include "Korean2000XOR1FMemoryRule.h"
 #include "KoreanMSX8KB0300MemoryRule.h"
 #include "Korean0000XORFFMemoryRule.h"
+#include "KoreanFFFFHiComMemoryRule.h"
+#include "KoreanFFFEMemoryRule.h"
+#include "KoreanBFFCMemoryRule.h"
+#include "KoreanFFF3FFFCMemoryRule.h"
+#include "KoreanMDFFF5MemoryRule.h"
 #include "MSXMemoryRule.h"
 #include "JanggunMemoryRule.h"
 #include "SG1000MemoryRule.h"
@@ -61,6 +66,11 @@ GearsystemCore::GearsystemCore()
     InitPointer(m_pKorean2000XOR1FMemoryRule);
     InitPointer(m_pKoreanMSX8KB0300MemoryRule);
     InitPointer(m_pKorean0000XORFFMemoryRule);
+    InitPointer(m_pKoreanFFFFHiComMemoryRule);
+    InitPointer(m_pKoreanFFFEMemoryRule);
+    InitPointer(m_pKoreanBFFCMemoryRule);
+    InitPointer(m_pKoreanFFF3FFFCMemoryRule);
+    InitPointer(m_pKoreanMDFFF5MemoryRule);
     InitPointer(m_pMSXMemoryRule);
     InitPointer(m_pJanggunMemoryRule);
     InitPointer(m_pSmsIOPorts);
@@ -87,6 +97,11 @@ GearsystemCore::~GearsystemCore()
     SafeDelete(m_pKorean2000XOR1FMemoryRule);
     SafeDelete(m_pKoreanMSX8KB0300MemoryRule);
     SafeDelete(m_pKorean0000XORFFMemoryRule);
+    SafeDelete(m_pKoreanFFFFHiComMemoryRule);
+    SafeDelete(m_pKoreanFFFEMemoryRule);
+    SafeDelete(m_pKoreanBFFCMemoryRule);
+    SafeDelete(m_pKoreanFFF3FFFCMemoryRule);
+    SafeDelete(m_pKoreanMDFFF5MemoryRule);
     SafeDelete(m_pMSXMemoryRule);
     SafeDelete(m_pJanggunMemoryRule);
     SafeDelete(m_pCartridge);
@@ -107,7 +122,7 @@ void GearsystemCore::Init(GS_Color_Format pixelFormat)
     m_pCartridge = new Cartridge();
     m_pProcessor = new Processor(m_pMemory);
     m_pVideo = new Video(m_pMemory, m_pProcessor, m_pCartridge);
-    m_pInput = new Input(m_pProcessor);
+    m_pInput = new Input(m_pProcessor, m_pVideo);
     m_pAudio = new Audio(m_pCartridge);
     m_pSmsIOPorts = new SmsIOPorts(m_pAudio, m_pVideo, m_pInput, m_pCartridge, m_pMemory, m_pProcessor);
     m_pGameGearIOPorts = new GameGearIOPorts(m_pAudio, m_pVideo, m_pInput, m_pCartridge, m_pMemory);
@@ -139,8 +154,6 @@ bool GearsystemCore::RunToVBlank(u8* pFrameBuffer, s16* pSampleBuffer, int* pSam
 #endif
             vblank = m_pVideo->Tick(clockCycles);
             m_pAudio->Tick(clockCycles);
-            m_pInput->Tick(clockCycles);
-
             totalClocks += clockCycles;
 
 #ifndef GEARSYSTEM_DISABLE_DISASSEMBLER
@@ -336,6 +349,16 @@ void GearsystemCore::KeyPressed(GS_Joypads joypad, GS_Keys key)
 void GearsystemCore::KeyReleased(GS_Joypads joypad, GS_Keys key)
 {
     m_pInput->KeyReleased(joypad, key);
+}
+
+void GearsystemCore::SetPhaser(int x, int y)
+{
+    m_pInput->SetPhaser(x, y);
+}
+
+void GearsystemCore::EnablePhaser(bool enable)
+{
+    m_pInput->EnablePhaser(enable);
 }
 
 void GearsystemCore::Pause(bool paused)
@@ -869,6 +892,11 @@ void GearsystemCore::InitMemoryRules()
     m_pKorean2000XOR1FMemoryRule = new Korean2000XOR1FMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pKoreanMSX8KB0300MemoryRule = new KoreanMSX8KB0300MemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pKorean0000XORFFMemoryRule = new Korean0000XORFFMemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKoreanFFFFHiComMemoryRule = new KoreanFFFFHiComMemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKoreanFFFEMemoryRule = new KoreanFFFEMemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKoreanBFFCMemoryRule = new KoreanBFFCMemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKoreanFFF3FFFCMemoryRule = new KoreanFFF3FFFCMemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pKoreanMDFFF5MemoryRule = new KoreanMDFFF5MemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pMSXMemoryRule = new MSXMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pJanggunMemoryRule = new JanggunMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pBootromMemoryRule = new BootromMemoryRule(m_pMemory, m_pCartridge, m_pInput);
@@ -918,6 +946,21 @@ bool GearsystemCore::AddMemoryRules()
         case Cartridge::CartridgeKorean0000XORFFMapper:
             m_pMemory->SetCurrentRule(m_pKorean0000XORFFMemoryRule);
             break;
+        case Cartridge::CartridgeKoreanFFFFHiComMapper:
+            m_pMemory->SetCurrentRule(m_pKoreanFFFFHiComMemoryRule);
+            break;
+        case Cartridge::CartridgeKoreanFFFEMapper:
+            m_pMemory->SetCurrentRule(m_pKoreanFFFEMemoryRule);
+            break;
+        case Cartridge::CartridgeKoreanBFFCMapper:
+            m_pMemory->SetCurrentRule(m_pKoreanBFFCMemoryRule);
+            break;
+        case Cartridge::CartridgeKoreanFFF3FFFCMapper:
+            m_pMemory->SetCurrentRule(m_pKoreanFFF3FFFCMemoryRule);
+            break;
+        case Cartridge::CartridgeKoreanMDFFF5Mapper:
+            m_pMemory->SetCurrentRule(m_pKoreanMDFFF5MemoryRule);
+            break;
         case Cartridge::CartridgeMSXMapper:
             m_pMemory->SetCurrentRule(m_pMSXMemoryRule);
             break;
@@ -963,6 +1006,11 @@ void GearsystemCore::Reset()
     m_pKorean2000XOR1FMemoryRule->Reset();
     m_pKoreanMSX8KB0300MemoryRule->Reset();
     m_pKorean0000XORFFMemoryRule->Reset();
+    m_pKoreanFFFFHiComMemoryRule->Reset();
+    m_pKoreanFFFEMemoryRule->Reset();
+    m_pKoreanBFFCMemoryRule->Reset();
+    m_pKoreanFFF3FFFCMemoryRule->Reset();
+    m_pKoreanMDFFF5MemoryRule->Reset();
     m_pMSXMemoryRule->Reset();
     m_pJanggunMemoryRule->Reset();
     m_pBootromMemoryRule->Reset();

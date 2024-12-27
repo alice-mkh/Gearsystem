@@ -22,7 +22,6 @@
 #include <ctype.h>
 #include "Cartridge.h"
 #include "miniz/miniz.h"
-#include "game_db.h"
 #include "log.h"
 
 Cartridge::Cartridge()
@@ -42,6 +41,7 @@ Cartridge::Cartridge()
     m_bPAL = false;
     m_bRAMWithoutBattery = false;
     m_iCRC = 0;
+    m_iFeatures = 0;
 }
 
 Cartridge::~Cartridge()
@@ -72,6 +72,7 @@ void Cartridge::Reset()
     m_bRAMWithoutBattery = false;
     m_GameGenieList.clear();
     m_iCRC = 0;
+    m_iFeatures = 0;
 }
 
 u32 Cartridge::GetCRC() const
@@ -211,6 +212,26 @@ void Cartridge::ForceConfig(Cartridge::ForceConfiguration config)
             m_Type = config.type;
             Log("Forcing Mapper: Korean 0000 XOR FF");
             break;
+        case Cartridge::CartridgeKoreanFFFFHiComMapper:
+            m_Type = config.type;
+            Log("Forcing Mapper: Korean FFFF HiCom");
+            break;
+        case Cartridge::CartridgeKoreanFFFEMapper:
+            m_Type = config.type;
+            Log("Forcing Mapper: Korean FFFE");
+            break;
+        case Cartridge::CartridgeKoreanBFFCMapper:
+            m_Type = config.type;
+            Log("Forcing Mapper: Korean BFFC");
+            break;
+        case Cartridge::CartridgeKoreanFFF3FFFCMapper:
+            m_Type = config.type;
+            Log("Forcing Mapper: Korean FFF3 FFFC");
+            break;
+        case Cartridge::CartridgeKoreanMDFFF5Mapper:
+            m_Type = config.type;
+            Log("Forcing Mapper: Korean MD FFF5");
+            break;
         case Cartridge::CartridgeMSXMapper:
             m_Type = config.type;
             Log("Forcing Mapper: MSX");
@@ -250,6 +271,11 @@ void Cartridge::ForceConfig(Cartridge::ForceConfiguration config)
             Log("Not forcing Zone: Auto");
             break;
     }
+}
+
+int Cartridge::GetFeatures() const
+{
+    return m_iFeatures;
 }
 
 int Cartridge::GetROMSize() const
@@ -603,6 +629,22 @@ bool Cartridge::GatherMetadata(u32 crc)
         case Cartridge::CartridgeKorean0000XORFFMapper:
             Log("Korean 0000 XOR FF mapper found");
             break;
+        case Cartridge::CartridgeKoreanFFFFHiComMapper:
+            Log("Korean FFFF HiCom mapper found");
+            break;
+        case Cartridge::CartridgeKoreanFFFEMapper:
+            Log("Korean FFFE mapper found");
+            break;
+        case Cartridge::CartridgeKoreanBFFCMapper:
+            Log("Korean BFFC mapper found");
+            break;
+        case Cartridge::CartridgeKoreanFFF3FFFCMapper:
+            Log("Korean FFF3 FFFC mapper found");
+            break;
+        case Cartridge::CartridgeKoreanMDFFF5Mapper:
+            m_Type = Cartridge::CartridgeKoreanMDFFF5Mapper;
+            Log("Korean MDFFF5 mapper found");
+            break;
         case Cartridge::CartridgeMSXMapper:
             Log("MSX mapper found");
             break;
@@ -645,6 +687,8 @@ void Cartridge::GetInfoFromDB(u32 crc)
 
             Log("ROM found in database: %s. CRC: %X", kGameDatabase[i].title, crc);
 
+            m_iFeatures = kGameDatabase[i].features;
+
             switch (kGameDatabase[i].mapper)
             {
                 case GS_DB_CODEMASTERS_MAPPER:
@@ -674,6 +718,21 @@ void Cartridge::GetInfoFromDB(u32 crc)
                     break;
                 case GS_DB_KOREAN_0000_XOR_FF_MAPPER:
                     m_Type = Cartridge::CartridgeKorean0000XORFFMapper;
+                    break;
+                case GS_DB_KOREAN_FFFF_HICOM_MAPPER:
+                    m_Type = Cartridge::CartridgeKoreanFFFFHiComMapper;
+                    break;
+                case GS_DB_KOREAN_FFFE_MAPPER:
+                    m_Type = Cartridge::CartridgeKoreanFFFEMapper;
+                    break;
+                case GS_DB_KOREAN_BFFC_MAPPER:
+                    m_Type = Cartridge::CartridgeKoreanBFFCMapper;
+                    break;
+                case GS_DB_KOREAN_FFF3_FFFC_MAPPER:
+                    m_Type = Cartridge::CartridgeKoreanFFF3FFFCMapper;
+                    break;
+                case GS_DB_KOREAN_MD_FFF5_MAPPER:
+                    m_Type = Cartridge::CartridgeKoreanMDFFF5Mapper;
                     break;
                 case GS_DB_MSX_MAPPER:
                     m_Type = Cartridge::CartridgeMSXMapper;

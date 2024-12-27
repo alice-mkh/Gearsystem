@@ -71,6 +71,11 @@
     <ClCompile Include="..\..\src\Korean2000XOR1FMemoryRule.cpp" />
     <ClCompile Include="..\..\src\KoreanMSX8KB0300MemoryRule.cpp" />
     <ClCompile Include="..\..\src\Korean0000XORFFMemoryRule.cpp" />
+    <ClCompile Include="..\..\src\KoreanFFFFHiComMemoryRule.cpp" />
+    <ClCompile Include="..\..\src\KoreanFFFEMemoryRule.cpp" />
+    <ClCompile Include="..\..\src\KoreanBFFCMemoryRule.cpp" />
+    <ClCompile Include="..\..\src\KoreanFFF3FFFCMemoryRule.cpp" />
+    <ClCompile Include="..\..\src\KoreanMDFFF5MemoryRule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\miniz\miniz.h" />
@@ -148,6 +153,11 @@
     <ClInclude Include="..\..\src\Korean2000XOR1FMemoryRule.h" />
     <ClInclude Include="..\..\src\KoreanMSX8KB0300MemoryRule.h" />
     <ClInclude Include="..\..\src\Korean0000XORFFMemoryRule.h" />
+    <ClInclude Include="..\..\src\KoreanFFFFHiComMemoryRule.h" />
+    <ClInclude Include="..\..\src\KoreanFFFEMemoryRule.h" />
+    <ClInclude Include="..\..\src\KoreanBFFCMemoryRule.h" />
+    <ClInclude Include="..\..\src\KoreanFFF3FFFCMemoryRule.h" />
+    <ClInclude Include="..\..\src\KoreanMDFFF5MemoryRule.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\desktop-shared\gui_events.def" />

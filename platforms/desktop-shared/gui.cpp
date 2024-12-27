@@ -139,6 +139,7 @@ void gui_init(void)
     emu_set_overscan(config_debug.debug ? 0 : config_video.overscan);
     emu_set_hide_left_bar(config_video.hide_left_bar);
     emu_disable_ym2413(config_audio.ym2413 == 1);
+    emu_enable_phaser(config_emulator.light_phaser);
 }
 
 void gui_destroy(void)
@@ -503,7 +504,7 @@ static void main_menu(void)
             if (ImGui::BeginMenu("Mapper"))
             {
                 ImGui::PushItemWidth(220.0f);
-                ImGui::Combo("##emu_mapper", &config_emulator.mapper, "Auto\0ROM Only\0SEGA\0Codemasters\0Korean\0SG-1000\0MSX\0Janggun\0Korean Multi 2000 XOR F1\0Korean Multi MSX 32KB 2000\0Korean Multi MSX SMS 8000\0Korean Multi SMS 32KB 2000\0Korean Multi MSX 8KB 0300\0Korean 0000 XOR FF\0\0");
+                ImGui::Combo("##emu_mapper", &config_emulator.mapper, "Auto\0ROM Only\0SEGA\0Codemasters\0Korean\0SG-1000\0MSX\0Janggun\0Korean Multi 2000 XOR F1\0Korean Multi MSX 32KB 2000\0Korean Multi MSX SMS 8000\0Korean Multi SMS 32KB 2000\0Korean Multi MSX 8KB 0300\0Korean 0000 XOR FF\0Korean FFFF HiCom\0Korean FFFE\0Korean BFFC\0Korean FFF3 FFFC\0Korean MD FFF5\0\0");
                 ImGui::PopItemWidth();
                 ImGui::EndMenu();
             }
@@ -916,7 +917,7 @@ static void main_menu(void)
                         gamepad_configuration_item("2:", &config_input[1].gamepad_2, 1);
                         gamepad_configuration_item("START:", &config_input[1].gamepad_start, 1);
 
-                        popup_modal_gamepad(1);                 
+                        popup_modal_gamepad(1);
 
                         ImGui::EndMenu();
                     }
@@ -925,6 +926,13 @@ static void main_menu(void)
                 }
 
                 ImGui::EndMenu();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Enable Light Phaser", "", &config_emulator.light_phaser))
+            {
+                emu_enable_phaser(config_emulator.light_phaser);
             }
 
             ImGui::EndMenu();
@@ -1247,6 +1255,17 @@ static void main_window(void)
 
     float tex_h = (float)runtime.screen_width / (float)(SYSTEM_TEXTURE_WIDTH);
     float tex_v = (float)runtime.screen_height / (float)(SYSTEM_TEXTURE_HEIGHT);
+
+    if (config_emulator.light_phaser)
+    {
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        ImGuiIO& io = ImGui::GetIO();
+        float mouse_x = (io.MousePos.x - p.x) / scale_multiplier;
+        float mouse_y = (io.MousePos.y - p.y) / scale_multiplier;
+        mouse_x *= (float)runtime.screen_width / (float)w_corrected;
+        mouse_y *= (float)runtime.screen_height / (float)h_corrected;
+        emu_set_phaser((int)mouse_x, (int)mouse_y);
+    }
 
     ImGui::Image((ImTextureID)(intptr_t)renderer_emu_texture, ImVec2((float)main_window_width, (float)main_window_height), ImVec2(0, 0), ImVec2(tex_h, tex_v));
 
@@ -1905,6 +1924,16 @@ static Cartridge::CartridgeTypes get_mapper(int index)
             return Cartridge::CartridgeKoreanMSX8KB0300Mapper;
         case 13:
             return Cartridge::CartridgeKorean0000XORFFMapper;
+        case 14:
+            return Cartridge::CartridgeKoreanFFFFHiComMapper;
+        case 15:
+            return Cartridge::CartridgeKoreanFFFEMapper;
+        case 16:
+            return Cartridge::CartridgeKoreanBFFCMapper;
+        case 17:
+            return Cartridge::CartridgeKoreanFFF3FFFCMapper;
+        case 18:
+            return Cartridge::CartridgeKoreanMDFFF5Mapper;
         default:
             return Cartridge::CartridgeNotSupported;
     }
