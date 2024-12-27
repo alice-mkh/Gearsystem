@@ -1,5 +1,5 @@
 project('gearsystem-highscore', ['c', 'cpp'],
-  version : '0.1',
+  version : '3.5.0',
   default_options : [
     'warning_level=3',
     'cpp_std=c++11'
@@ -7,6 +7,10 @@ project('gearsystem-highscore', ['c', 'cpp'],
 )
 
 version = run_command('git', 'describe', '--always', '--tags').stdout().strip()
+
+if version == ''
+  version = meson.project_version()
+endif
 
 gearsystem_source = [
   'gearsystem-highscore.cpp',
@@ -91,6 +95,12 @@ shared_library('gearsystem-highscore',
   install : true
 )
 
-install_data('gearsystem.highscore',
-  install_dir : cores_dir,
+descriptor = configuration_data()
+descriptor.set('version', version)
+configure_file(
+  input: 'gearsystem.highscore.in',
+  output: 'gearsystem.highscore',
+  configuration: descriptor,
+  install_dir: cores_dir,
+  install: true
 )
