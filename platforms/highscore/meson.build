@@ -6,6 +6,8 @@ project('gearsystem-highscore', ['c', 'cpp'],
   ]
 )
 
+version = run_command('git', 'describe', '--always', '--tags').stdout().strip()
+
 gearsystem_source = [
   'gearsystem-highscore.cpp',
   '../../src/Audio.cpp',
@@ -59,12 +61,14 @@ cores_dir = get_option('libdir') / 'highscore' / 'cores'
 
 gearsystem_c_args = [
   '-DGEARSYSTEM_DISABLE_DISASSEMBLER',
+  '-DEMULATOR_BUILD="@0@"'.format(version),
   '-fvisibility=hidden',
   '-Wno-calloc-transposed-args',
 ]
 
 gearsystem_cpp_args = [
   '-DGEARSYSTEM_DISABLE_DISASSEMBLER',
+  '-DEMULATOR_BUILD="@0@"'.format(version),
   '-fvisibility=hidden',
   '-Wno-pedantic',
   '-Wno-stringop-overflow',
