@@ -1,5 +1,5 @@
 project('gearsystem-highscore', ['c', 'cpp'],
-  version : '3.5.0',
+  version : '3.6.1',
   default_options : [
     'warning_level=3',
     'cpp_std=c++11'
@@ -7,7 +7,7 @@ project('gearsystem-highscore', ['c', 'cpp'],
 )
 
 version = meson.project_version()
-commit = run_command('git', 'describe', '--always', '--dirty').stdout().strip()
+commit = run_command('git', 'describe', '--always', '--dirty', '--match', '').stdout().strip()
 
 gearsystem_source = [
   'gearsystem-highscore.cpp',
