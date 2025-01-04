@@ -148,6 +148,16 @@ void emu_enable_phaser(bool enable)
     gearsystem->EnablePhaser(enable);
 }
 
+void emu_set_paddle(float x)
+{
+    gearsystem->SetPaddle(x);
+}
+
+void emu_enable_paddle(bool enable)
+{
+    gearsystem->EnablePaddle(enable);
+}
+
 void emu_pause(void)
 {
     gearsystem->Pause(true);
@@ -290,8 +300,6 @@ void emu_get_info(char* info)
         int rom_banks = cart->GetROMBankCount();
         const char* mapper = get_mapper(cart->GetType());
         const char* zone = get_zone(cart->GetZone());
-
-        cart->GetCRC();
 
         snprintf(info, 512, "File Name: %s\nCRC: %08X\nMapper: %s\nRegion: %s\nSystem: %s\nRefresh Rate: %s\nCartridge Header: %s\nROM Banks: %d\nBattery: %s\nScreen Resolution: %dx%d", filename, crc, mapper, zone, system, pal, checksum, rom_banks, battery, runtime.screen_width, runtime.screen_height);
     }

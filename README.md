@@ -14,21 +14,21 @@ This is an open source project with its ongoing development made possible thanks
 
 Don't hesitate to report bugs or ask for new features by [openning an issue](https://github.com/drhelius/Gearsystem/issues).
 
-<img src="http://www.geardome.com/files/gearsystem/gearsystem_debug_01.png">
+<img src="http://www.geardome.com/files/gearsystem/gearsystem_debug_02.png">
 
 ## Downloads
 
 - **Windows**:
-  - [Gearsystem-3.5.0-windows.zip](https://github.com/drhelius/Gearsystem/releases/download/3.5.0/Gearsystem-3.5.0-windows.zip)
+  - [Gearsystem-3.6.1-windows.zip](https://github.com/drhelius/Gearsystem/releases/download/3.6.1/Gearsystem-3.6.1-windows.zip)
   - NOTE: If you have errors you may need to install:
     - [Microsoft Visual C++ Redistributable](https://go.microsoft.com/fwlink/?LinkId=746572)
     - [OpenGL Compatibility Pack](https://apps.microsoft.com/detail/9nqpsl29bfff)
 - **macOS**:
-  - [Gearsystem-3.5.0-macos-arm.zip](https://github.com/drhelius/Gearsystem/releases/download/3.5.0/Gearsystem-3.5.0-macos-arm.zip)
-  - [Gearsystem-3.5.0-macos-intel.zip](https://github.com/drhelius/Gearsystem/releases/download/3.5.0/Gearsystem-3.5.0-macos-intel.zip)
+  - [Gearsystem-3.6.1-macos-arm.zip](https://github.com/drhelius/Gearsystem/releases/download/3.6.1/Gearsystem-3.6.1-macos-arm.zip)
+  - [Gearsystem-3.6.1-macos-intel.zip](https://github.com/drhelius/Gearsystem/releases/download/3.6.1/Gearsystem-3.6.1-macos-intel.zip)
 - **Linux**:
-  - [Gearsystem-3.5.0-ubuntu-22.04.zip](https://github.com/drhelius/Gearsystem/releases/download/3.5.0/Gearsystem-3.5.0-ubuntu-22.04.zip)
-  - [Gearsystem-3.5.0-ubuntu-20.04.zip](https://github.com/drhelius/Gearsystem/releases/download/3.5.0/Gearsystem-3.5.0-ubuntu-20.04.zip) 
+  - [Gearsystem-3.6.1-ubuntu-22.04.zip](https://github.com/drhelius/Gearsystem/releases/download/3.6.1/Gearsystem-3.6.1-ubuntu-22.04.zip)
+  - [Gearsystem-3.6.1-ubuntu-20.04.zip](https://github.com/drhelius/Gearsystem/releases/download/3.6.1/Gearsystem-3.6.1-ubuntu-20.04.zip) 
   - NOTE: You may need to install `libsdl2` and `libglew`
 - **RetroArch**: [Libretro core documentation](https://docs.libretro.com/library/gearcoleco/).
 
@@ -47,6 +47,7 @@ Don't hesitate to report bugs or ask for new features by [openning an issue](htt
 - Automatic region detection: NTSC-JAP, NTSC-USA, PAL-EUR.
 - Accurate VDP emulation, including timing and VDP specifics for SMS, SMS2, GG and TMS9918 modes.
 - Support for YM2413 (OPLL) FM sound chip.
+- Light Phaser and Paddle Control
 - Internal database for rom detection.
 - Battery powered RAM save support.
 - Save states.
@@ -65,6 +66,8 @@ Don't hesitate to report bugs or ask for new features by [openning an issue](htt
 - *Overscan*: For a precise representation of the original image select **Overscan** `Top+Bottom` and **Aspect Ratio** `Standard (4:3 DAR)` in the **Video** menu. Game Gear will ignore any overscan settings.
 - *Mouse Cursor*: Automatically hides when hovering main output window or when Main Menu is disabled.
 - *Portable Mode*: Create an empty file named `portable.ini` in the same directory as the application binary to enable portable mode.
+- *Docking windows*: In debug mode you can dock windows together by pressing SHIFT and drag'n drop a window into another.
+- *Debug multi-viewport*: In Windows or macOS you can enable "multi-viewport" in debug menu. You must restart the emulator for the change to take effect. Once enabled you can drag debugger windows outside the main window.
 - *Debug Symbols*: The emulator always tries to load a symbol file at the same time a rom is being loaded. For example, for ```path_to_rom_file.sms``` it tries to load ```path_to_rom_file.sym```. It is also possible to load a symbol file using the GUI or using the CLI.
 - *Command Line Usage*: ```gearsystem [rom_file] [symbol_file]```
 

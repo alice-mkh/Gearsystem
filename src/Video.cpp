@@ -424,14 +424,13 @@ void Video::WriteControl(u8 data)
     {
         m_bFirstByteInSequence = false;
         m_VdpAddress = (m_VdpAddress & 0x3F00) | data;
-        m_VdpBuffer = data;
     }
     else
     {
         m_bFirstByteInSequence = true;
 
         m_VdpCode = (data >> 6) & 0x03;
-        m_VdpAddress = ((data & 0x3F) << 8) | m_VdpBuffer;
+        m_VdpAddress = ((data & 0x3F) << 8) | (m_VdpAddress & 0x00FF);
 
         switch (data & 0xC0)
         {
@@ -444,7 +443,7 @@ void Video::WriteControl(u8 data)
             case 0x80:
             {
                 u8 reg = data & 0x0F;
-                m_VdpRegister[reg] = m_VdpBuffer;
+                m_VdpRegister[reg] = (m_VdpAddress & 0x00FF);
 
                 if (reg < 2)
                 {
@@ -1091,7 +1090,7 @@ void Video::Render16bit(u16* srcFrameBuffer, u8* dstFrameBuffer, GS_Color_Format
     int overscan_v = 0;
     int overscan_content_v = 0;
     int overscan_content_h = 0;
-    int overscan_total_width = GS_RESOLUTION_MAX_WIDTH;
+    int overscan_total_width = GS_RESOLUTION_MAX_WIDTH - m_iHideLeftBarOffset;
     int overscan_total_height = 0;
     bool overscan_enabled = false;
     int overscan_color = m_bTMS9918 ? m_VdpRegister[7] & 0x0F : ColorFromPalette((m_VdpRegister[7] & 0x0F) + 16);
