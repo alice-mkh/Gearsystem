@@ -21,7 +21,6 @@
 #include "Memory.h"
 #include "Processor.h"
 #include "Audio.h"
-#include "Video.h"
 #include "Input.h"
 #include "Cartridge.h"
 #include "MemoryRule.h"
@@ -42,6 +41,7 @@
 #include "KoreanMDFFF5MemoryRule.h"
 #include "MSXMemoryRule.h"
 #include "JanggunMemoryRule.h"
+#include "Multi4PAKAllActionMemoryRule.h"
 #include "SG1000MemoryRule.h"
 #include "SmsIOPorts.h"
 #include "GameGearIOPorts.h"
@@ -73,6 +73,7 @@ GearsystemCore::GearsystemCore()
     InitPointer(m_pKoreanMDFFF5MemoryRule);
     InitPointer(m_pMSXMemoryRule);
     InitPointer(m_pJanggunMemoryRule);
+    InitPointer(m_pMulti4PAKAllActionMemoryRule);
     InitPointer(m_pSmsIOPorts);
     InitPointer(m_pGameGearIOPorts);
     InitPointer(m_pBootromMemoryRule);
@@ -104,6 +105,7 @@ GearsystemCore::~GearsystemCore()
     SafeDelete(m_pKoreanMDFFF5MemoryRule);
     SafeDelete(m_pMSXMemoryRule);
     SafeDelete(m_pJanggunMemoryRule);
+    SafeDelete(m_pMulti4PAKAllActionMemoryRule);
     SafeDelete(m_pCartridge);
     SafeDelete(m_pInput);
     SafeDelete(m_pVideo);
@@ -375,9 +377,19 @@ void GearsystemCore::SetPhaser(int x, int y)
     m_pInput->SetPhaser(x, y);
 }
 
+void GearsystemCore::SetPhaserOffset(int x, int y)
+{
+    m_pInput->SetPhaserOffset(x, y);
+}
+
 void GearsystemCore::EnablePhaser(bool enable)
 {
     m_pInput->EnablePhaser(enable);
+}
+
+void GearsystemCore::EnablePhaserCrosshair(bool enable, Video::LightPhaserCrosshairShape shape, Video::LightPhaserCrosshairColor color)
+{
+    m_pVideo->SetLightPhaserCrosshair(enable, shape, color);
 }
 
 void GearsystemCore::SetPaddle(float x)
@@ -928,6 +940,7 @@ void GearsystemCore::InitMemoryRules()
     m_pKoreanMDFFF5MemoryRule = new KoreanMDFFF5MemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pMSXMemoryRule = new MSXMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pJanggunMemoryRule = new JanggunMemoryRule(m_pMemory, m_pCartridge, m_pInput);
+    m_pMulti4PAKAllActionMemoryRule = new Multi4PAKAllActionMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pBootromMemoryRule = new BootromMemoryRule(m_pMemory, m_pCartridge, m_pInput);
     m_pMemory->SetCurrentRule(m_pRomOnlyMemoryRule);
     m_pMemory->SetBootromRule(m_pBootromMemoryRule);
@@ -996,6 +1009,9 @@ bool GearsystemCore::AddMemoryRules()
         case Cartridge::CartridgeJanggunMapper:
             m_pMemory->SetCurrentRule(m_pJanggunMemoryRule);
             break;
+        case Cartridge::CartridgeMulti4PAKAllActionMapper:
+            m_pMemory->SetCurrentRule(m_pMulti4PAKAllActionMemoryRule);
+            break;
         case Cartridge::CartridgeNotSupported:
             notSupported = true;
             break;
@@ -1042,6 +1058,7 @@ void GearsystemCore::Reset()
     m_pKoreanMDFFF5MemoryRule->Reset();
     m_pMSXMemoryRule->Reset();
     m_pJanggunMemoryRule->Reset();
+    m_pMulti4PAKAllActionMemoryRule->Reset();
     m_pBootromMemoryRule->Reset();
     m_pGameGearIOPorts->Reset();
     m_pSmsIOPorts->Reset();
@@ -1050,6 +1067,12 @@ void GearsystemCore::Reset()
 
 void GearsystemCore::RenderFrameBuffer(u8* finalFrameBuffer)
 {
+    if (m_pInput->IsPhaserEnabled())
+    {
+        Input::stPhaser* phaser = m_pInput->GetPhaser();
+        m_pVideo->DrawPhaserCrosshair(phaser->x, phaser->y);
+    }
+
     if (m_GlassesConfig != GearsystemCore::GlassesBothEyes)
     {
         bool left = IsSetBit(m_pInput->GetGlassesRegistry(), 0);

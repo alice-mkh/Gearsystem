@@ -203,6 +203,11 @@ void config_read(void)
     config_emulator.window_height = read_int("Emulator", "WindowHeight", 503);
     config_emulator.status_messages = read_bool("Emulator", "StatusMessages", false);
     config_emulator.light_phaser = read_bool("Emulator", "LightPhaser", false);
+    config_emulator.light_phaser_crosshair = read_bool("Emulator", "LightPhaserCrosshair", false);
+    config_emulator.light_phaser_crosshair_shape = read_int("Emulator", "LightPhaserCrosshairShape", 0);
+    config_emulator.light_phaser_crosshair_color = read_int("Emulator", "LightPhaserCrosshairColor", 0);
+    config_emulator.light_phaser_x_offset = read_int("Emulator", "LightPhaserXOffset", 0);
+    config_emulator.light_phaser_y_offset = read_int("Emulator", "LightPhaserYOffset", 0);
     config_emulator.paddle_control = read_bool("Emulator", "PaddleControl", false);
     config_emulator.paddle_sensitivity = read_int("Emulator", "PaddleSensitivity", 5);
 
@@ -236,6 +241,7 @@ void config_read(void)
     config_video.mix_frames = read_bool("Video", "MixFrames", true);
     config_video.mix_frames_intensity = read_float("Video", "MixFramesIntensity", 0.50f);
     config_video.scanlines = read_bool("Video", "Scanlines", true);
+    config_video.scanlines_filter = read_bool("Video", "ScanlinesFilter", true);
     config_video.scanlines_intensity = read_float("Video", "ScanlinesIntensity", 0.10f);
     config_video.sync = read_bool("Video", "Sync", true);
     config_video.glasses = read_int("Video", "3DGlasses", 0);
@@ -319,6 +325,11 @@ void config_write(void)
     write_int("Emulator", "WindowHeight", config_emulator.window_height);
     write_bool("Emulator", "StatusMessages", config_emulator.status_messages);
     write_bool("Emulator", "LightPhaser", config_emulator.light_phaser);
+    write_bool("Emulator", "LightPhaserCrosshair", config_emulator.light_phaser_crosshair);
+    write_int("Emulator", "LightPhaserCrosshairShape", config_emulator.light_phaser_crosshair_shape);
+    write_int("Emulator", "LightPhaserCrosshairColor", config_emulator.light_phaser_crosshair_color);
+    write_int("Emulator", "LightPhaserXOffset", config_emulator.light_phaser_x_offset);
+    write_int("Emulator", "LightPhaserYOffset", config_emulator.light_phaser_y_offset);
     write_bool("Emulator", "PaddleControl", config_emulator.paddle_control);
     write_int("Emulator", "PaddleSensitivity", config_emulator.paddle_sensitivity);
 
@@ -338,6 +349,7 @@ void config_write(void)
     write_bool("Video", "MixFrames", config_video.mix_frames);
     write_float("Video", "MixFramesIntensity", config_video.mix_frames_intensity);
     write_bool("Video", "Scanlines", config_video.scanlines);
+    write_bool("Video", "ScanlinesFilter", config_video.scanlines_filter);
     write_float("Video", "ScanlinesIntensity", config_video.scanlines_intensity);
     write_bool("Video", "Sync", config_video.sync);
     write_int("Video", "3DGlasses", config_video.glasses);

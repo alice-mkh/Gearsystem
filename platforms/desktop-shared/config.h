@@ -64,6 +64,11 @@ struct config_Emulator
     int window_height = 503;
     bool status_messages = false;
     bool light_phaser = false;
+    bool light_phaser_crosshair = false;
+    int light_phaser_crosshair_shape = 0;
+    int light_phaser_crosshair_color = 0;
+    int light_phaser_x_offset = 0;
+    int light_phaser_y_offset = 0;
     bool paddle_control = false;
     int paddle_sensitivity = 5;
     bool capture_mouse = false;
@@ -81,6 +86,7 @@ struct config_Video
     bool mix_frames = true;
     float mix_frames_intensity = 0.50f;
     bool scanlines = true;
+    bool  scanlines_filter = true;
     float scanlines_intensity = 0.10f;
     bool sync = true;
     int glasses = 0;
