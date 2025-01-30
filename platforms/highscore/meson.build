@@ -34,6 +34,7 @@ gearsystem_source = [
   '../../src/KoreanSMS32KB2000MemoryRule.cpp',
   '../../src/Memory.cpp',
   '../../src/MemoryRule.cpp',
+  '../../src/Multi4PAKAllActionMemoryRule.cpp',
   '../../src/MSXMemoryRule.cpp',
   '../../src/opcodes_cb.cpp',
   '../../src/opcodes.cpp',
