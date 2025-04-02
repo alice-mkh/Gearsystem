@@ -48,9 +48,8 @@ gearsystem_source = [
   '../../src/Video.cpp',
   '../../src/YM2413.cpp',
   '../../src/audio/Blip_Buffer.cpp',
-  '../../src/audio/Effects_Buffer.cpp',
-  '../../src/audio/Multi_Buffer.cpp',
   '../../src/audio/Sms_Apu.cpp',
+  '../../src/audio/Stereo_Buffer.cpp',
   '../../src/audio/emu2413/emu2413.c',
   '../../src/miniz/miniz.c',
 ]
