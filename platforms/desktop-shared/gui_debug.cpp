@@ -19,8 +19,6 @@
 
 #include <math.h>
 #include "imgui/imgui.h"
-#include "imgui/memory_editor.h"
-#include "imgui/colors.h"
 #include "nfd/nfd.h"
 #include "nfd/nfd_sdl2.h"
 #include "config.h"
@@ -29,6 +27,7 @@
 #include "../../src/gearsystem.h"
 #include "gui.h"
 #include "gui_debug_constants.h"
+#include "gui_debug_memory.h"
 #include "application.h"
 
 #define GUI_DEBUG_IMPORT
@@ -49,9 +48,6 @@ struct DisassmeblerLine
     std::string symbol;
 };
 
-static MemEditor mem_edit[16];
-static int mem_edit_select = -1;
-static int current_mem_edit = 0;
 static std::vector<DebugSymbol> symbols;
 static Memory::stDisassembleRecord* selected_record = NULL;
 static char brk_address_cpu[8] = "";
@@ -63,11 +59,8 @@ static bool goto_address_requested = false;
 static u16 goto_address_target = 0;
 static bool goto_back_requested = false;
 static int goto_back = 0;
-static char set_value_buffer[5] = {0};
 
 static void debug_window_processor(void);
-static void debug_window_memory(void);
-static void memory_editor_menu(void);
 static void debug_window_disassembler(void);
 static void debug_window_vram(void);
 static void debug_window_vram_background(void);
@@ -90,11 +83,14 @@ void gui_debug_windows(void)
         if (config_debug.show_processor)
             debug_window_processor();
         if (config_debug.show_memory)
-            debug_window_memory();
+            gui_debug_window_memory();
         if (config_debug.show_disassembler)
             debug_window_disassembler();
         if (config_debug.show_video)
             debug_window_vram();
+
+        gui_debug_memory_watches_window();
+        gui_debug_memory_search_window();
     }
 }
 
@@ -103,6 +99,7 @@ void gui_debug_reset(void)
     gui_debug_reset_breakpoints_cpu();
     gui_debug_reset_breakpoints_mem();
     gui_debug_reset_symbols();
+    gui_debug_memory_reset();
     selected_record = NULL;
 }
 
@@ -198,339 +195,6 @@ void gui_debug_reset_breakpoints_mem(void)
 void gui_debug_go_back(void)
 {
     goto_back_requested = true;
-}
-
-void gui_debug_copy_memory(void)
-{
-    mem_edit[current_mem_edit].Copy();
-}
-
-void gui_debug_paste_memory(void)
-{
-    mem_edit[current_mem_edit].Paste();
-}
-
-static void memory_editor_menu(void)
-{
-    ImGui::BeginMenuBar();
-
-    if (ImGui::BeginMenu("File"))
-    {
-        if (ImGui::MenuItem("Save Memory As..."))
-        {
-            nfdchar_t *outPath;
-            nfdfilteritem_t filterItem[1] = { { "Memory Dump Files", "txt" } };
-            nfdsavedialogu8args_t args = { };
-            args.filterList = filterItem;
-            args.filterCount = 1;
-            args.defaultPath = NULL;
-            args.defaultName = NULL;
-            if (!NFD_GetNativeWindowFromSDLWindow(application_sdl_window, &args.parentWindow))
-            {
-                Log("NFD_GetNativeWindowFromSDLWindow failed: %s\n", SDL_GetError());
-            }
-
-            nfdresult_t result = NFD_SaveDialogU8_With(&outPath, &args);
-            if (result == NFD_OKAY)
-            {
-                mem_edit[current_mem_edit].SaveToFile(outPath);
-                NFD_FreePath(outPath);
-            }
-            else if (result != NFD_CANCEL)
-            {
-                Log("Save Memory Dump Error: %s", NFD_GetError());
-            }
-        }
-
-        ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Edit"))
-    {
-        if (ImGui::MenuItem("Copy", "Ctrl+C"))
-        {
-            gui_debug_copy_memory();
-        }
-
-        if (ImGui::MenuItem("Paste", "Ctrl+V"))
-        {
-            gui_debug_paste_memory();
-        }
-
-        ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Selection"))
-    {
-        if (ImGui::MenuItem("Select All", "Ctrl+A"))
-        {
-            mem_edit[current_mem_edit].SelectAll();
-        }
-
-        if (ImGui::MenuItem("Clear Selection"))
-        {
-            mem_edit[current_mem_edit].ClearSelection();
-        }
-
-        if (ImGui::BeginMenu("Set value"))
-        {
-            ImGui::SetNextItemWidth(50);
-            if (ImGui::InputTextWithHint("##set_value", "XXXX", set_value_buffer, IM_ARRAYSIZE(set_value_buffer), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase))
-            {
-                try
-                {
-                    mem_edit[current_mem_edit].SetValueToSelection((int)std::stoul(set_value_buffer, 0, 16));
-                    set_value_buffer[0] = 0;
-                }
-                catch(const std::invalid_argument&)
-                {
-                }
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Set!", ImVec2(40, 0)))
-            {
-                try
-                {
-                    mem_edit[current_mem_edit].SetValueToSelection((int)std::stoul(set_value_buffer, 0, 16));
-                    set_value_buffer[0] = 0;
-                }
-                catch(const std::invalid_argument&)
-                {
-                }
-            }
-            ImGui::EndMenu();
-        }
-
-        ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Bookmarks"))
-    {
-        if (ImGui::MenuItem("Clear All"))
-        {
-            mem_edit[current_mem_edit].RemoveBookmarks();
-        }
-
-        if (ImGui::MenuItem("Add Bookmark"))
-        {
-            mem_edit[current_mem_edit].AddBookmark();
-        }
-
-        std::vector<MemEditor::Bookmark>* bookmarks = mem_edit[current_mem_edit].GetBookmarks();
-
-        if (bookmarks->size() > 0)
-            ImGui::Separator();
-
-        for (long unsigned int i = 0; i < bookmarks->size(); i++)
-        {
-            MemEditor::Bookmark* bookmark = &(*bookmarks)[i];
-
-            char label[80];
-            snprintf(label, 80, "$%04X: %s", bookmark->address, bookmark->name);
-
-            if (ImGui::MenuItem(label))
-            {
-                mem_edit[current_mem_edit].JumpToAddress(bookmark->address);
-            }
-        }
-
-        ImGui::EndMenu();
-    }
-
-    ImGui::EndMenuBar();
-}
-
-static void debug_window_memory(void)
-{
-    ImGui::SetNextWindowPos(ImVec2(160, 380), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(482, 308), ImGuiCond_FirstUseEver);
-
-    ImGui::Begin("Memory Editor", &config_debug.show_memory, ImGuiWindowFlags_MenuBar);
-
-    memory_editor_menu();
-
-    GearsystemCore* core = emu_get_core();
-    Memory* memory = core->GetMemory();
-    Cartridge* cart = core->GetCartridge();
-    Video* video = core->GetVideo();
-
-    ImGui::PushFont(gui_default_font);
-
-    ImGui::TextColored(cyan, "  BANKS: ");ImGui::SameLine();
-
-    if (memory->GetCurrentRule()->Has8kBanks())
-    {
-        for (int i = 0; i < 6; i++)
-        {
-            ImGui::TextColored(magenta, "ROM%d", i);ImGui::SameLine();
-            ImGui::Text("$%02X", memory->GetCurrentRule()->GetBank(i));
-            if (i != 5)
-                ImGui::SameLine();
-        }
-    }
-    else
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            ImGui::TextColored(magenta, "ROM%d", i);ImGui::SameLine();
-            ImGui::Text("$%02X", memory->GetCurrentRule()->GetBank(i));
-            if (i != 2)
-                ImGui::SameLine();
-        }
-    }
-
-    if (cart->GetType() == Cartridge::CartridgeSegaMapper)
-    {
-        ImGui::SameLine();
-        ImGui::TextColored(magenta, "  RAM");ImGui::SameLine();
-        ImGui::Text("$%02X", memory->GetCurrentRule()->GetRamBank());
-    }
-
-    ImGui::PopFont();
-
-    if (ImGui::BeginTabBar("##memory_tabs", ImGuiTabBarFlags_None))
-    {
-        if (memory->GetCurrentRule()->Has8kBanks())
-        {
-            for (int i=0; i<6; i++)
-            {
-                int mem_edit_index = i + 10;
-                char label[16];
-                snprintf(label, 16, "ROM%d", i);
-
-                if (ImGui::BeginTabItem(label, NULL, mem_edit_select == mem_edit_index ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-                {
-                    ImGui::PushFont(gui_default_font);
-                    if (mem_edit_select == mem_edit_index)
-                            mem_edit_select = -1;
-                        current_mem_edit = mem_edit_index;
-                    mem_edit[current_mem_edit].Draw(memory->GetCurrentRule()->GetPage(i), 0x2000, 0x2000 * i);
-                    ImGui::PopFont();
-                    ImGui::EndTabItem();
-                }
-            }
-        }
-        else
-        {
-            if (cart->GetType() == Cartridge::CartridgeSegaMapper)
-            {
-                if (ImGui::BeginTabItem("FIXED 1KB", NULL, mem_edit_select == 0 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-                {
-                    ImGui::PushFont(gui_default_font);
-                    if (mem_edit_select == 0)
-                        mem_edit_select = -1;
-                    current_mem_edit = 0;
-                    mem_edit[current_mem_edit].Draw(memory->GetMemoryMap(), 0x400, 0);
-                    ImGui::PopFont();
-                    ImGui::EndTabItem();
-                }
-
-                if (ImGui::BeginTabItem("ROM0", NULL, mem_edit_select == 1 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-                {
-                    ImGui::PushFont(gui_default_font);
-                    if (mem_edit_select == 1)
-                        mem_edit_select = -1;
-                    current_mem_edit = 1;
-                    mem_edit[current_mem_edit].Draw(memory->GetCurrentRule()->GetPage(0) + 0x400, 0x4000 - 0x400, 0x400);
-                    ImGui::PopFont();
-                    ImGui::EndTabItem();
-                }
-            } 
-            else if (ImGui::BeginTabItem("ROM0", NULL, mem_edit_select == 2 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-            {
-                ImGui::PushFont(gui_default_font);
-                if (mem_edit_select == 2)
-                        mem_edit_select = -1;
-                    current_mem_edit = 2;
-                mem_edit[current_mem_edit].Draw(memory->GetCurrentRule()->GetPage(0), 0x4000, 0);
-                ImGui::PopFont();
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("ROM1", NULL, mem_edit_select == 3 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-            {
-                ImGui::PushFont(gui_default_font);
-                if (mem_edit_select == 3)
-                        mem_edit_select = -1;
-                    current_mem_edit = 3;
-                mem_edit[current_mem_edit].Draw(memory->GetCurrentRule()->GetPage(1), 0x4000, 0x4000);
-                ImGui::PopFont();
-                ImGui::EndTabItem();
-            }
-
-            if ((cart->GetType() == Cartridge::CartridgeCodemastersMapper) && IsValidPointer(memory->GetCurrentRule()->GetRamBanks()))
-            {
-                if (ImGui::BeginTabItem("ROM2", NULL, mem_edit_select == 4 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-                {
-                    ImGui::PushFont(gui_default_font);
-                    if (mem_edit_select == 4)
-                        mem_edit_select = -1;
-                    current_mem_edit = 4;
-                    mem_edit[current_mem_edit].Draw(memory->GetCurrentRule()->GetPage(2), 0x2000, 0x8000);
-                    ImGui::PopFont();
-                    ImGui::EndTabItem();
-                }
-
-                if (ImGui::BeginTabItem("EXT RAM", NULL, mem_edit_select == 5 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-                {
-                    ImGui::PushFont(gui_default_font);
-                    if (mem_edit_select == 5)
-                        mem_edit_select = -1;
-                    current_mem_edit = 5;
-                    mem_edit[current_mem_edit].Draw(memory->GetCurrentRule()->GetRamBanks(), 0x2000, 0xA000);
-                    ImGui::PopFont();
-                    ImGui::EndTabItem();
-                }
-            }
-            else if (ImGui::BeginTabItem("ROM2", NULL, mem_edit_select == 6 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-            {
-                ImGui::PushFont(gui_default_font);
-                if (mem_edit_select == 6)
-                        mem_edit_select = -1;
-                    current_mem_edit = 6;
-                mem_edit[current_mem_edit].Draw(memory->GetCurrentRule()->GetPage(2), 0x4000, 0x8000);
-                ImGui::PopFont();
-                ImGui::EndTabItem();
-            }
-        }
-
-        if (ImGui::BeginTabItem("RAM", NULL, mem_edit_select == 7 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-        {
-            ImGui::PushFont(gui_default_font);
-            if (mem_edit_select == 7)
-                    mem_edit_select = -1;
-                current_mem_edit = 7;
-            mem_edit[current_mem_edit].Draw(memory->GetMemoryMap() + 0xC000, 0x4000, 0xC000);
-            ImGui::PopFont();
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("VRAM", NULL, mem_edit_select == 8 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-        {
-            ImGui::PushFont(gui_default_font);
-            if (mem_edit_select == 8)
-                    mem_edit_select = -1;
-                current_mem_edit = 8;
-            mem_edit[current_mem_edit].Draw(video->GetVRAM(), 0x4000, 0);
-            ImGui::PopFont();
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("CRAM", NULL, mem_edit_select == 9 ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None))
-        {
-            ImGui::PushFont(gui_default_font);
-            if (mem_edit_select == 9)
-                    mem_edit_select = -1;
-                current_mem_edit = 9;
-            mem_edit[current_mem_edit].Draw(video->GetCRAM(), 0x40, 0);
-            ImGui::PopFont();
-            ImGui::EndTabItem();
-        }
-
-        ImGui::EndTabBar();
-    }
-
-    ImGui::End();
 }
 
 static void debug_window_disassembler(void)
@@ -994,12 +658,12 @@ static void debug_window_processor(void)
 
     ImGui::NextColumn();
     ImGui::Separator();
-    ImGui::TextColored(cyan, " A'"); ImGui::SameLine();
+    ImGui::TextColored(violet, " A'"); ImGui::SameLine();
     ImGui::Text("$%02X", proc_state->AF2->GetHigh());
     ImGui::Text(BYTE_TO_BINARY_PATTERN_SPACED, BYTE_TO_BINARY(proc_state->AF2->GetHigh()));
 
     ImGui::NextColumn();
-    ImGui::TextColored(cyan, " F'"); ImGui::SameLine();
+    ImGui::TextColored(violet, " F'"); ImGui::SameLine();
     ImGui::Text("$%02X", proc_state->AF2->GetLow());
     ImGui::Text(BYTE_TO_BINARY_PATTERN_SPACED, BYTE_TO_BINARY(proc_state->AF2->GetLow()));
 
@@ -1016,12 +680,12 @@ static void debug_window_processor(void)
 
     ImGui::NextColumn();
     ImGui::Separator();
-    ImGui::TextColored(cyan, " B'"); ImGui::SameLine();
+    ImGui::TextColored(violet, " B'"); ImGui::SameLine();
     ImGui::Text("$%02X", proc_state->BC2->GetHigh());
     ImGui::Text(BYTE_TO_BINARY_PATTERN_SPACED, BYTE_TO_BINARY(proc_state->BC2->GetHigh()));
 
     ImGui::NextColumn();
-    ImGui::TextColored(cyan, " C'"); ImGui::SameLine();
+    ImGui::TextColored(violet, " C'"); ImGui::SameLine();
     ImGui::Text("$%02X", proc_state->BC2->GetLow());
     ImGui::Text(BYTE_TO_BINARY_PATTERN_SPACED, BYTE_TO_BINARY(proc_state->BC2->GetLow()));
 
@@ -1038,12 +702,12 @@ static void debug_window_processor(void)
 
     ImGui::NextColumn();
     ImGui::Separator();
-    ImGui::TextColored(cyan, " D'"); ImGui::SameLine();
+    ImGui::TextColored(violet, " D'"); ImGui::SameLine();
     ImGui::Text("$%02X", proc_state->DE2->GetHigh());
     ImGui::Text(BYTE_TO_BINARY_PATTERN_SPACED, BYTE_TO_BINARY(proc_state->DE2->GetHigh()));
 
     ImGui::NextColumn();
-    ImGui::TextColored(cyan, " E'"); ImGui::SameLine();
+    ImGui::TextColored(violet, " E'"); ImGui::SameLine();
     ImGui::Text("$%02X", proc_state->DE2->GetLow());
     ImGui::Text(BYTE_TO_BINARY_PATTERN_SPACED, BYTE_TO_BINARY(proc_state->DE2->GetLow()));
 
@@ -1060,12 +724,12 @@ static void debug_window_processor(void)
 
     ImGui::NextColumn();
     ImGui::Separator();
-    ImGui::TextColored(cyan, " H'"); ImGui::SameLine();
+    ImGui::TextColored(violet, " H'"); ImGui::SameLine();
     ImGui::Text("$%02X", proc_state->HL2->GetHigh());
     ImGui::Text(BYTE_TO_BINARY_PATTERN_SPACED, BYTE_TO_BINARY(proc_state->HL2->GetHigh()));
 
     ImGui::NextColumn();
-    ImGui::TextColored(cyan, " L'"); ImGui::SameLine();
+    ImGui::TextColored(violet, " L'"); ImGui::SameLine();
     ImGui::Text("$%02X", proc_state->HL2->GetLow());
     ImGui::Text(BYTE_TO_BINARY_PATTERN_SPACED, BYTE_TO_BINARY(proc_state->HL2->GetLow()));
 
@@ -1284,7 +948,7 @@ static void debug_window_vram_background(void)
 
         ImGui::Image((ImTextureID)(intptr_t)renderer_emu_debug_vram_background, ImVec2(128.0f, 128.0f), ImVec2((1.0f / 32.0f) * tile_x, (1.0f / 32.0f) * tile_y), ImVec2((1.0f / 32.0f) * (tile_x + 1), (1.0f / 32.0f) * (tile_y + 1)));
 
-        ImGui::TextColored(yellow, "INFO:");
+        ImGui::TextColored(green, "INFO:");
 
         ImGui::TextColored(cyan, " X:"); ImGui::SameLine();
         ImGui::Text("$%02X", tile_x); ImGui::SameLine();
@@ -1451,7 +1115,7 @@ static void debug_window_vram_tiles(void)
 
         ImGui::PushFont(gui_default_font);
 
-        ImGui::TextColored(yellow, "DETAILS:");
+        ImGui::TextColored(green, "DETAILS:");
 
         int tile = (tile_y << 5) + tile_x;
 
@@ -1635,7 +1299,7 @@ static void debug_window_vram_sprites(void)
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             draw_list->AddRect(ImVec2(rectx_min, recty_min), ImVec2(rectx_max, recty_max), ImColor(cyan), 2.0f, ImDrawFlags_RoundCornersAll, 2.0f);
 
-            ImGui::TextColored(yellow, "DETAILS:");
+            ImGui::TextColored(green, "DETAILS:");
             ImGui::TextColored(cyan, " X:"); ImGui::SameLine();
             ImGui::Text("$%02X", x); ImGui::SameLine();
             ImGui::TextColored(cyan, "  Y:"); ImGui::SameLine();
@@ -1666,7 +1330,7 @@ static void debug_window_vram_palettes(void)
 
     ImGui::PushFont(gui_default_font);
 
-    ImGui::TextColored(yellow, "PALETTE 0 (BG):");
+    ImGui::TextColored(green, "PALETTE 0 (BG):");
 
     for (int i = 0; i < 2; i ++)
     {
@@ -1719,8 +1383,8 @@ static void debug_window_vram_palettes(void)
 
         if (i == 0)
         {
-            ImGui::TextColored(yellow, " ");
-            ImGui::TextColored(yellow, "PALETTE 1 (BG & SPRITES):");
+            ImGui::TextColored(green, " ");
+            ImGui::TextColored(green, "PALETTE 1 (BG & SPRITES):");
         }
     }
    
@@ -1736,13 +1400,13 @@ static void debug_window_vram_regs(void)
 
     const char* reg_desc[] = {"CONTROL 1     ", "CONTROL 2     ", "NAME TABLE    ", "COLOR TABLE   ", "PATTERN TABLE ", "SPRITE ATTR   ", "SPRITE PATTERN", "BACKDROP COLOR", "H SCROLL      ", "V SCROLL      ", "V INTERRUPT   "};
 
-    ImGui::TextColored(yellow, " ");
-    ImGui::TextColored(yellow, "VDP REGISTERS:");
+    ImGui::TextColored(green, " ");
+    ImGui::TextColored(green, "VDP REGISTERS:");
 
     for (int i = 0; i < 11; i++)
     {
         ImGui::TextColored(cyan, " REG $%01X ", i); ImGui::SameLine();
-        ImGui::TextColored(magenta, "%s ", reg_desc[i]); ImGui::SameLine();
+        ImGui::TextColored(violet, "%s ", reg_desc[i]); ImGui::SameLine();
         ImGui::Text("$%02X  (" BYTE_TO_BINARY_PATTERN_SPACED ")", regs[i], BYTE_TO_BINARY(regs[i]));
     }
 

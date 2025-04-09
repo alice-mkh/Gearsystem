@@ -39,8 +39,11 @@ static int sdl_init(void);
 static void sdl_destroy(void);
 static void sdl_load_gamepad_mappings(void);
 static void sdl_events(void);
+static void sdl_events_app(const SDL_Event* event);
 static void sdl_events_emu(const SDL_Event* event);
 static void sdl_shortcuts_gui(const SDL_Event* event);
+static void sdl_add_gamepads(void);
+static void sdl_remove_gamepad(SDL_JoystickID instance_id);
 static void handle_mouse_cursor(void);
 static void run_emulator(void);
 static void render(void);
@@ -139,6 +142,9 @@ void application_update_title(char* title)
 
 static int sdl_init(void)
 {
+    for (int i = 0; i < 2; i++)
+        InitPointer(application_gamepad[i]);
+
 #ifdef _WIN32
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
 #endif
@@ -169,28 +175,7 @@ static int sdl_init(void)
     SDL_SetWindowMinimumSize(application_sdl_window, 500, 300);
 
     sdl_load_gamepad_mappings();
-
-    int gamepads_found = 0;
-
-    for (int i = 0; i < SDL_NumJoysticks(); ++i)
-    {
-        if (SDL_IsGameController(i))
-        {
-            application_gamepad[gamepads_found] = SDL_GameControllerOpen(i);
-            if(!application_gamepad[gamepads_found])
-            {
-                Log("Warning: Unable to open game controller %d! SDL Error: %s\n", gamepads_found, SDL_GetError());
-            }
-            else
-            {
-                Debug("Game controller %d correctly detected", i);
-                gamepads_found++;
-
-                if (gamepads_found > 2)
-                    break;
-            }
-        }
-    }
+    sdl_add_gamepads();
 
     int w, h;
     int display_w, display_h;
@@ -275,24 +260,46 @@ static void sdl_events(void)
         
     while (SDL_PollEvent(&event))
     {
-        if (event.type == SDL_QUIT)
+        sdl_events_app(&event);
+
+        if (running)
         {
-            running = false;
+            ImGui_ImplSDL2_ProcessEvent(&event);
+
+            if (!gui_in_use)
+            {
+                sdl_events_emu(&event);
+                sdl_shortcuts_gui(&event);
+            }
+        }
+    }
+}
+
+static void sdl_events_app(const SDL_Event* event)
+{
+    if (event->type == SDL_QUIT)
+    {
+        running = false;
+        return;
+    }
+
+    if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_CLOSE && event->window.windowID == SDL_GetWindowID(application_sdl_window))
+    {
+        running = false;
+        return;
+    }
+
+    switch (event->type)
+    {
+        case SDL_CONTROLLERDEVICEADDED:
+        {
+            sdl_add_gamepads();
             break;
         }
-
-        if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(application_sdl_window))
+        case SDL_CONTROLLERDEVICEREMOVED:
         {
-            running = false;
+            sdl_remove_gamepad(event->cdevice.which);
             break;
-        }
-
-        ImGui_ImplSDL2_ProcessEvent(&event);
-
-        if (!gui_in_use)
-        {
-            sdl_events_emu(&event);
-            sdl_shortcuts_gui(&event);
         }
     }
 }
@@ -367,6 +374,9 @@ static void sdl_events_emu(const SDL_Event* event)
         {
             for (int i = 0; i < 2; i++)
             {
+                if (!IsValidPointer(application_gamepad[i]))
+                    continue;
+
                 GS_Joypads pad = (i == 0) ? Joypad_1 : Joypad_2;
                 SDL_JoystickID id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(application_gamepad[i]));
 
@@ -402,20 +412,23 @@ static void sdl_events_emu(const SDL_Event* event)
         {
             for (int i = 0; i < 2; i++)
             {
+                if (!IsValidPointer(application_gamepad[i]))
+                    continue;
+
                 GS_Joypads pad = (i == 0) ? Joypad_1 : Joypad_2;
                 SDL_JoystickID id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(application_gamepad[i]));
 
                 if (!config_input[i].gamepad)
                     continue;
 
-                if (event->jbutton.which != id)
+                if (event->cbutton.which != id)
                     continue;
 
-                if (event->jbutton.button == config_input[i].gamepad_1)
+                if (event->cbutton.button == config_input[i].gamepad_1)
                     emu_key_released(pad, Key_1);
-                else if (event->jbutton.button == config_input[i].gamepad_2)
+                else if (event->cbutton.button == config_input[i].gamepad_2)
                     emu_key_released(pad, Key_2);
-                else if (event->jbutton.button == config_input[i].gamepad_start)
+                else if (event->cbutton.button == config_input[i].gamepad_start)
                     emu_key_released(pad, Key_Start);
 
                 if (config_input[i].gamepad_directional == 1)
@@ -437,6 +450,9 @@ static void sdl_events_emu(const SDL_Event* event)
         {
             for (int i = 0; i < 2; i++)
             {
+                if (!IsValidPointer(application_gamepad[i]))
+                    continue;
+
                 GS_Joypads pad = (i == 0) ? Joypad_1 : Joypad_2;
                 SDL_JoystickID id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(application_gamepad[i]));
 
@@ -566,6 +582,87 @@ static void sdl_shortcuts_gui(const SDL_Event* event)
         int key = event->key.keysym.scancode;
         int mod = event->key.keysym.mod;
         gui_process_input(key, mod);
+    }
+}
+
+static void sdl_add_gamepads(void)
+{
+    bool player1_connected = IsValidPointer(application_gamepad[0]);
+    bool player2_connected = IsValidPointer(application_gamepad[1]);
+
+    if (player1_connected && player2_connected)
+        return;
+
+    for (int i = 0; i < SDL_NumJoysticks(); i++)
+    {
+        if (!SDL_IsGameController(i))
+            continue;
+
+        SDL_JoystickID joystick_id = SDL_JoystickGetDeviceInstanceID(i);
+
+        if (player1_connected)
+        {
+            SDL_JoystickID p1_id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(application_gamepad[0]));
+            if (p1_id == joystick_id)
+            {
+                continue;
+            }
+        }
+
+        if (player2_connected)
+        {
+            SDL_JoystickID p2_id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(application_gamepad[1]));
+            if (p2_id == joystick_id)
+            {
+                continue;
+            }
+        }
+
+        SDL_GameController* controller = SDL_GameControllerOpen(i);
+        if (!IsValidPointer(controller))
+        {
+            Log("Warning: Unable to open game controller %d! SDL Error: %s\n", i, SDL_GetError());
+            continue;
+        }
+
+        if (!player1_connected)
+        {
+            application_gamepad[0] = controller;
+            player1_connected = true;
+            Debug("Game controller %d assigned to Player 1", i);
+        }
+        else if (!player2_connected)
+        {
+            application_gamepad[1] = controller;
+            player2_connected = true;
+            Debug("Game controller %d assigned to Player 2", i);
+        }
+        else
+        {
+            SDL_GameControllerClose(controller);
+            Debug("Game controller %d detected but all player slots are full", i);
+        }
+
+        if (player1_connected && player2_connected)
+            break;
+    }
+}
+
+static void sdl_remove_gamepad(SDL_JoystickID instance_id)
+{
+    for (int i = 0; i < 2; i++)
+    {
+        if (application_gamepad[i] != NULL)
+        {
+            SDL_JoystickID current_id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(application_gamepad[i]));
+            if (current_id == instance_id)
+            {
+                SDL_GameControllerClose(application_gamepad[i]);
+                application_gamepad[i] = NULL;
+                Debug("Game controller %d disconnected from slot %d", instance_id, i);
+                break;
+            }
+        }
     }
 }
 
