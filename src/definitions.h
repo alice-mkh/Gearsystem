@@ -131,6 +131,7 @@ typedef void (*RamChangedCallback) (void);
 #define GS_AUDIO_BUFFER_SIZE 4096
 
 #define GS_SAVESTATE_MAGIC 0x03121220
+#define GS_SAVESTATE_VERSION 1
 
 enum GS_Color_Format
 {
@@ -224,6 +225,17 @@ inline unsigned int Pow2Ceil(u16 n)
     ++n;
     return n;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+    #define INLINE inline __attribute__((always_inline))
+    #define NO_INLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+    #define INLINE __forceinline
+    #define NO_INLINE __declspec(noinline)
+#else
+    #define INLINE inline
+    #define NO_INLINE
+#endif
 
 #if !defined(DEBUG_GEARSYSTEM)
     #if defined(__GNUC__) || defined(__clang__)
