@@ -71,6 +71,9 @@ gearsystem_hs_core_load_rom (HsCore      *core,
   HsPlatform platform = hs_core_get_platform (core);
   self->core->GetAudio ()->DisableYM2413 (platform != HS_PLATFORM_MASTER_SYSTEM || !self->enable_fm_audio);
 
+  self->core->EnablePhaser (self->enable_light_phaser);
+  self->core->EnablePaddle (false);
+
   return TRUE;
 }
 
@@ -80,6 +83,9 @@ gearsystem_hs_core_reset (HsCore *core, gboolean hard)
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
   self->core->ResetROMPreservingRAM ();
+
+  self->core->EnablePhaser (self->enable_light_phaser);
+  self->core->EnablePaddle (false);
 }
 
 static void
@@ -186,7 +192,6 @@ gearsystem_hs_core_run_frame (HsCore *core)
 
   hs_software_context_set_area (self->context, &area);
   hs_software_context_set_row_stride (self->context, width * hs_pixel_format_get_pixel_size (HS_PIXEL_FORMAT_R8G8B8X8));
-
 
   hs_core_play_samples (core, audio_buffer, n_audio_samples);
 }
