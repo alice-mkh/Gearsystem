@@ -61,17 +61,21 @@ gearsystem_deps = [
 
 cores_dir = get_option('libdir') / 'highscore' / 'cores'
 
-gearsystem_c_args = [
+gearsystem_shared_args = [
   '-DGEARSYSTEM_DISABLE_DISASSEMBLER',
   '-DEMULATOR_BUILD="@0@"'.format(version),
   '-fvisibility=hidden',
+  '-D__HIGHSCORE__',
+]
+
+gearsystem_c_args = [
+  gearsystem_shared_args,
   '-Wno-calloc-transposed-args',
 ]
 
 gearsystem_cpp_args = [
+  gearsystem_shared_args,
   '-DGEARSYSTEM_DISABLE_DISASSEMBLER',
-  '-DEMULATOR_BUILD="@0@"'.format(version),
-  '-fvisibility=hidden',
   '-Wno-pedantic',
   '-Wno-stringop-overflow',
   '-Wno-unused-parameter',

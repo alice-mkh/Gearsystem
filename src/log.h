@@ -29,6 +29,11 @@
 extern retro_log_printf_t log_cb;
 #endif
 
+#if defined(__HIGHSCORE__)
+#include "gearsystem-highscore.h"
+extern void gearsystem_hs_log(const char *message);
+#endif
+
 #if defined(DEBUG_GEARSYSTEM)
     #if defined(__ANDROID__)
         #include <android/log.h>
@@ -53,6 +58,13 @@ inline void Log_func(const char* const msg, ...)
     if (log_cb)
     {
         log_cb(RETRO_LOG_INFO, "%s\n", buffer);
+        return;
+    }
+#endif
+
+#if defined(__HIGHSCORE__)
+    {
+        gearsystem_hs_log(buffer);
         return;
     }
 #endif

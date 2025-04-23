@@ -3,6 +3,8 @@
 #include <gearsystem.h>
 #include <math.h>
 
+HsCore *core;
+
 struct _GearsystemHsCore
 {
   HsCore parent_instance;
@@ -44,6 +46,9 @@ gearsystem_hs_core_load_rom (HsCore      *core,
                              GError     **error)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
+
+  self->core = new GearsystemCore ();
+  self->core->Init ();
 
   g_assert (n_rom_paths == 1);
 
@@ -193,6 +198,9 @@ gearsystem_hs_core_stop (HsCore *core)
 
   g_clear_pointer (&self->save_path, g_free);
   g_clear_object (&self->context);
+
+  SafeDelete (self->core);
+  self->core = NULL;
 }
 
 static gboolean
@@ -335,9 +343,7 @@ gearsystem_hs_core_get_region (HsCore *core)
 static void
 gearsystem_hs_core_finalize (GObject *object)
 {
-  GearsystemHsCore *self = GEARSYSTEM_HS_CORE (object);
-
-  SafeDelete (self->core);
+  core = NULL;
 
   G_OBJECT_CLASS (gearsystem_hs_core_parent_class)->finalize (object);
 }
@@ -373,8 +379,9 @@ gearsystem_hs_core_class_init (GearsystemHsCoreClass *klass)
 static void
 gearsystem_hs_core_init (GearsystemHsCore *self)
 {
-  self->core = new GearsystemCore ();
-  self->core->Init ();
+  g_assert (!core);
+
+  core = HS_CORE (self);
 }
 
 static void
@@ -420,4 +427,10 @@ GType
 hs_get_core_type (void)
 {
   return GEARSYSTEM_TYPE_HS_CORE;
+}
+
+void
+gearsystem_hs_log (const char *message)
+{
+  hs_core_log_literal (core, HS_LOG_INFO, message);
 }
