@@ -10,4 +10,6 @@ G_DECLARE_FINAL_TYPE (GearsystemHsCore, gearsystem_hs_core, GEARSYSTEM, HS_CORE,
 
 G_MODULE_EXPORT GType hs_get_core_type (void);
 
+void gearsystem_hs_log(const char *message);
+
 G_END_DECLS
