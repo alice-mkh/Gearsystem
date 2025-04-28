@@ -74,7 +74,7 @@ gearsystem_hs_core_load_rom (HsCore      *core,
   self->core->EnablePhaser (self->enable_light_phaser);
   self->core->EnablePaddle (false);
 
-  self->core->SetGlassesConfig (GearsystemCore::GlassesConfig::GlassesLeftEye);
+  self->core->SetGlassesConfig (GearsystemCore::GlassesConfig::GlassesRightEye);
 
   return TRUE;
 }
