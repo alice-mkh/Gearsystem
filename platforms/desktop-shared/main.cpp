@@ -25,54 +25,80 @@ int main(int argc, char* argv[])
     char* rom_file = NULL;
     char* symbol_file = NULL;
     bool show_usage = false;
+    bool force_fullscreen = false;
+    bool force_windowed = false;
     int ret = 0;
 
-    for (int i = 0; i < argc; i++)
+    for (int i = 1; i < argc; i++)
     {
-        if ((strcmp(argv[i], "-h") == 0) || (strcmp(argv[i], "-?") == 0) ||
-            (strcmp(argv[i], "--help") == 0) || (strcmp(argv[i], "/?") == 0))
+        if (argv[i][0] == '-')
         {
-            show_usage = true;
-            ret = 0;
-        } 
-        else if ((strcmp(argv[i], "-v") == 0) || (strcmp(argv[i], "--version") == 0))
-        {
-            printf("%s\n", GEARSYSTEM_TITLE_ASCII);
-            printf("Build: %s\n", GEARSYSTEM_VERSION);
-            printf("Author: Ignacio Sánchez (drhelius)\n");
-            return 0;
-        }
-        else if (argv[i][0] == '-')
-        {
-            show_usage = true;
-            ret = -1;
+            if ((strcmp(argv[i], "-h") == 0) || (strcmp(argv[i], "-?") == 0) ||
+                (strcmp(argv[i], "--help") == 0) || (strcmp(argv[i], "/?") == 0))
+            {
+                show_usage = true;
+                ret = 0;
+            }
+            else if ((strcmp(argv[i], "-v") == 0) || (strcmp(argv[i], "--version") == 0))
+            {
+                printf("%s\n", GEARSYSTEM_TITLE_ASCII);
+                printf("Build: %s\n", GEARSYSTEM_VERSION);
+                printf("Author: Ignacio Sánchez (drhelius)\n");
+                return 0;
+            }
+            else if ((strcmp(argv[i], "-f") == 0) || (strcmp(argv[i], "--fullscreen") == 0))
+            {
+                force_fullscreen = true;
+            }
+            else if ((strcmp(argv[i], "-w") == 0) || (strcmp(argv[i], "--windowed") == 0))
+            {
+                force_windowed = true;
+            }
+            else
+            {
+                printf("Unknown option: %s\n", argv[i]);
+                show_usage = true;
+                ret = -1;
+            }
         }
     }
 
-    switch (argc)
+    int non_option_count = 0;
+    for (int i = 1; i < argc; i++)
     {
-        case 3:
-            rom_file = argv[1];
-            symbol_file = argv[2];
-            break;
-        case 2:
-            rom_file = argv[1];
-            break;
-        case 1:
-            break;
-        default:
-            show_usage = true;
-            ret = -1;
-            break;
+        if (argv[i][0] != '-')
+        {
+            if (non_option_count == 0)
+                rom_file = argv[i];
+            else if (non_option_count == 1)
+                symbol_file = argv[i];
+            
+            non_option_count++;
+            
+            if (non_option_count > 2)
+            {
+                show_usage = true;
+                ret = -1;
+                break;
+            }
+        }
     }
 
     if (show_usage)
     {
-        printf("Usage: %s [rom_file] [symbol_file]\n", argv[0]);
+        printf("Usage: %s [options] [rom_file] [symbol_file]\n", argv[0]);
+        printf("Options:\n");
+        printf("  -f, --fullscreen    Start in fullscreen mode\n");
+        printf("  -w, --windowed      Start in windowed mode with menu visible\n");
+        printf("  -v, --version       Display version information\n");
+        printf("  -h, --help          Display this help message\n");
         return ret;
     }
 
-    ret = application_init(rom_file, symbol_file);
+    if (force_fullscreen && force_windowed)
+        force_fullscreen = false;
+
+    ret = application_init(rom_file, symbol_file, force_fullscreen, force_windowed);
 
     if (ret >= 0)
         application_mainloop();
