@@ -71,6 +71,8 @@ gearsystem_hs_core_load_rom (HsCore      *core,
   HsPlatform platform = hs_core_get_platform (core);
   self->core->GetAudio ()->DisableYM2413 (platform != HS_PLATFORM_MASTER_SYSTEM || !self->enable_fm_audio);
 
+  self->core->GetVideo ()->SetOverscan (Video::Overscan::OverscanFull284);
+
   self->core->EnablePhaser (self->enable_light_phaser);
   self->core->EnablePaddle (false);
 
@@ -194,6 +196,16 @@ gearsystem_hs_core_run_frame (HsCore *core)
 
   hs_software_context_set_area (self->context, &area);
   hs_software_context_set_row_stride (self->context, width * hs_pixel_format_get_pixel_size (HS_PIXEL_FORMAT_R8G8B8X8));
+
+  bool is_224 = self->core->GetVideo()->IsExtendedMode224 ();
+  bool pal = runtime_info.region == Region_PAL;
+
+  HsBorder overscan;
+  hs_border_init (&overscan,
+                  GS_RESOLUTION_SMS_OVERSCAN_H_284_L,
+                  (pal ? GS_RESOLUTION_SMS_OVERSCAN_V_PAL : GS_RESOLUTION_SMS_OVERSCAN_V) - (is_224 ? 16 : 0));
+
+  hs_software_context_set_overscan (self->context, &overscan);
 
   hs_core_play_samples (core, audio_buffer, n_audio_samples);
 }
