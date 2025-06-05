@@ -321,7 +321,7 @@ gearsystem_hs_core_get_aspect_ratio (HsCore *core)
   double par;
 
   if (hs_core_get_platform (core) == HS_PLATFORM_GAME_GEAR)
-    par = 8.0 / 7.0;
+    par = 6.0 / 5.0;
   else if (runtime_info.region == Region_PAL)
     par = 2950000.0 / 2128137.0;
   else
