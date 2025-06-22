@@ -176,11 +176,13 @@ static void
 gearsystem_hs_core_run_frame (HsCore *core)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
-  u8 *video_buffer = (u8 *) hs_software_context_get_framebuffer (self->context);
+  u8 *video_buffer;
   int16_t audio_buffer[GS_AUDIO_BUFFER_SIZE];
   int n_audio_samples;
 
+  video_buffer = (u8 *) hs_software_context_acquire_framebuffer (self->context);
   self->core->RunToVBlank (video_buffer, audio_buffer, &n_audio_samples);
+  hs_software_context_release_framebuffer (self->context);
 
   GS_RuntimeInfo runtime_info;
   self->core->GetRuntimeInfo (runtime_info);
