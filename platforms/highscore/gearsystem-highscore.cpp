@@ -76,8 +76,8 @@ gearsystem_hs_core_load_rom (HsCore      *core,
   return TRUE;
 }
 
-static void
-gearsystem_hs_core_reset (HsCore *core, gboolean hard)
+static gboolean
+gearsystem_hs_core_reset (HsCore *core, gboolean hard, GError **errr)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
@@ -85,6 +85,8 @@ gearsystem_hs_core_reset (HsCore *core, gboolean hard)
 
   self->core->EnablePhaser (self->enable_light_phaser);
   self->core->EnablePaddle (false);
+
+  return TRUE;
 }
 
 static void
