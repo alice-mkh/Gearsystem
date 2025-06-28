@@ -59,7 +59,7 @@ gearsystem_deps = [
   dependency('gio-2.0'),
 ]
 
-cores_dir = get_option('libdir') / 'highscore' / 'cores'
+core_dir = get_option('libdir') / 'highscore' / 'cores' / 'gearsystem'
 
 gearsystem_shared_args = [
   '-DGEARSYSTEM_DISABLE_DISASSEMBLER',
@@ -93,7 +93,7 @@ shared_library('gearsystem-highscore',
   cpp_args : gearsystem_cpp_args,
   include_directories : gearsystem_include_dirs,
   name_prefix: '',
-  install_dir : cores_dir,
+  install_dir : core_dir,
   install : true
 )
 
@@ -104,6 +104,6 @@ configure_file(
   input: 'gearsystem.highscore.in',
   output: 'gearsystem.highscore',
   configuration: descriptor,
-  install_dir: cores_dir,
+  install_dir: core_dir,
   install: true
 )
