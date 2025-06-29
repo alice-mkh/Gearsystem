@@ -59,7 +59,11 @@ gearsystem_deps = [
   dependency('gio-2.0'),
 ]
 
-core_dir = get_option('libdir') / 'highscore' / 'cores' / 'gearsystem'
+core_dir = get_option('core_install_dir')
+if core_dir == ''
+  libdir = get_option('prefix') / get_option('libdir')
+  core_dir = libdir / 'highscore' / 'cores' / 'gearsystem'
+endif
 
 gearsystem_c_args = [
   '-DGEARSYSTEM_DISABLE_DISASSEMBLER',
