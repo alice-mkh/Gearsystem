@@ -18,6 +18,7 @@
  */
 
 #include <SDL.h>
+#include <iomanip>
 #include "../../src/gearsystem.h"
 #define MINI_CASE_SENSITIVE
 #include "mINI/ini.h"
@@ -143,6 +144,7 @@ void config_init(void)
     config_setShortcut(gui_ShortcutDebugCopy, KMOD_CTRL, SDL_SCANCODE_C);
     config_setShortcut(gui_ShortcutDebugPaste, KMOD_CTRL, SDL_SCANCODE_V);
     config_setShortcut(gui_ShortcutShowMainMenu, KMOD_CTRL, SDL_SCANCODE_M);
+    config_setShortcut(gui_ShortcutQuit, KMOD_CTRL, SDL_SCANCODE_Q);
 
     config_ini_file = new mINI::INIFile(config_emu_file_path);
 }
@@ -292,6 +294,9 @@ void config_read(void)
 void config_write(void)
 {
     Log("Saving settings to %s", config_emu_file_path);
+
+    if (config_emulator.ffwd)
+        config_audio.sync = true;
 
     write_bool("Debug", "Debug", config_debug.debug);
     write_bool("Debug", "Disassembler", config_debug.show_disassembler);
@@ -527,9 +532,12 @@ static float read_float(const char* group, const char* key, float default_value)
 
 static void write_float(const char* group, const char* key, float value)
 {
-    std::string value_str = std::to_string(value);
-    config_ini_data[group][key] = value_str;
-    Debug("Save setting: [%s][%s]=%s", group, key, value_str.c_str());
+    std::ostringstream oss;
+    oss.imbue(std::locale::classic());
+    oss << std::fixed << std::setprecision(2) << value;
+    std::string value_str = oss.str();
+    config_ini_data[group][key] = oss.str();
+    Debug("Save float setting: [%s][%s]=%s", group, key, value_str.c_str());
 }
 
 static bool read_bool(const char* group, const char* key, bool default_value)

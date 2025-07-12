@@ -45,7 +45,7 @@ static retro_input_poll_t input_poll_cb;
 static retro_input_state_t input_state_cb;
 
 static struct retro_log_callback logging;
-static retro_log_printf_t log_cb;
+retro_log_printf_t log_cb;
 
 static char retro_system_directory[4096];
 static char retro_game_path[4096];
@@ -186,11 +186,11 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
         return;
     }
 
+    bool phaser = false;
+    bool paddle = false;
     input_device[port] = device;
-    core->EnablePhaser(false);
-    core->EnablePaddle(false);
 
-    switch ( device )
+    switch (device)
     {
         case RETRO_DEVICE_NONE:
             log_cb(RETRO_LOG_INFO, "Controller %u: Unplugged\n", port);
@@ -201,17 +201,21 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
             break;
         case RETRO_DEVICE_LIGHT_PHASER:
             log_cb(RETRO_LOG_INFO, "Controller %u: Light Phaser\n", port);
-            if (port == 0)
-                core->EnablePhaser(true);
+            phaser = true;
             break;
         case RETRO_DEVICE_PADDLE:
             log_cb(RETRO_LOG_INFO, "Controller %u: Paddle\n", port);
-            if (port == 0)
-                core->EnablePaddle(true);
+            paddle = true;
             break;
         default:
             log_cb(RETRO_LOG_DEBUG, "Setting descriptors for unsupported device.\n");
             break;
+    }
+
+    if (port == 0)
+    {
+        core->EnablePhaser(phaser);
+        core->EnablePaddle(paddle);
     }
 }
 
@@ -283,6 +287,7 @@ void retro_run(void)
 
 bool retro_load_game(const struct retro_game_info *info)
 {
+    core->GetCartridge()->Reset();
     check_variables();
     load_bootroms();
 

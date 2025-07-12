@@ -50,13 +50,24 @@ static void render(void);
 static void frame_throttle(void);
 static void save_window_size(void);
 
-int application_init(const char* rom_file, const char* symbol_file)
+int application_init(const char* rom_file, const char* symbol_file, bool force_fullscreen, bool force_windowed)
 {
     Log("\n%s", GEARSYSTEM_TITLE_ASCII);
     Log("%s %s Desktop App", GEARSYSTEM_TITLE, GEARSYSTEM_VERSION);
 
     config_init();
     config_read();
+
+    if (force_fullscreen)
+    {
+        config_emulator.fullscreen = true;
+        config_emulator.show_menu = false;
+    }
+    else if (force_windowed)
+    {
+        config_emulator.fullscreen = false;
+        config_emulator.show_menu = true;
+    }
 
     int ret = sdl_init();
     emu_init();
@@ -128,6 +139,10 @@ void application_trigger_quit(void)
 void application_trigger_fullscreen(bool fullscreen)
 {
     SDL_SetWindowFullscreen(application_sdl_window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+    if (config_debug.debug)
+        config_emulator.show_menu = true;
+    else
+        config_emulator.show_menu = !fullscreen;
 }
 
 void application_trigger_fit_to_content(int width, int height)
@@ -508,7 +523,7 @@ static void sdl_events_emu(const SDL_Event* event)
 
             if (key == SDL_SCANCODE_ESCAPE)
             {
-                application_trigger_quit();
+                application_trigger_fullscreen(false);
                 break;
             }
 
