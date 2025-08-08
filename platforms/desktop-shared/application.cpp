@@ -374,7 +374,7 @@ static void handle_mouse_cursor(void)
 {
     if (!config_debug.debug && gui_main_window_hovered)
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-    else if (!config_debug.debug && config_emulator.fullscreen)
+    else if (!config_debug.debug && config_emulator.fullscreen && !config_emulator.always_show_menu)
     {
         Uint32 now = SDL_GetTicks();
 
@@ -739,6 +739,21 @@ static void sdl_shortcuts_gui(const SDL_Event* event)
 
 static void sdl_add_gamepads(void)
 {
+    for (int i = 0; i < 2; i++)
+    {
+        if (IsValidPointer(application_gamepad[i]))
+        {
+            SDL_Joystick* js = SDL_GameControllerGetJoystick(application_gamepad[i]);
+
+            if (!IsValidPointer(js) || SDL_JoystickGetAttached(js) == SDL_FALSE)
+            {
+                SDL_GameControllerClose(application_gamepad[i]);
+                application_gamepad[i] = NULL;
+                Debug("Game controller %d closed when adding a new gamepad", i);
+            }
+        }
+    }
+
     bool player1_connected = IsValidPointer(application_gamepad[0]);
     bool player2_connected = IsValidPointer(application_gamepad[1]);
 
