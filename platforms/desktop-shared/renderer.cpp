@@ -18,11 +18,12 @@
  */
 
 #ifdef __APPLE__
-#define GL_SILENCE_DEPRECATION
-#include <OpenGL/gl.h>
+    #define GL_SILENCE_DEPRECATION
+    #include <OpenGL/gl.h>
 #else
-#include <GL/glew.h>
-#include <SDL_opengl.h>
+    #define GLAD_GL_IMPLEMENTATION
+    #include "glad/glad.h"
+    #include <SDL_opengl.h>
 #endif
 
 #include "imgui/imgui.h"
@@ -58,17 +59,18 @@ static void update_system_texture(void);
 static void update_debug_textures(void);
 static void render_scanlines(void);
 
-void renderer_init(void)
+bool renderer_init(void)
 {
 #if !defined(__APPLE__)
-    GLenum err = glewInit();
-    if (GLEW_OK != err)
+    int version = gladLoadGL((GLADloadfunc) SDL_GL_GetProcAddress);
+
+    if (version == 0)
     {
-        Log("GLEW Error: %s", glewGetErrorString(err));
+        Log("GLAD ERROR: Failed to initialize OpenGL context");
+        return false;
     }
 
-    renderer_glew_version = (const char*)glewGetString(GLEW_VERSION);
-    Log("Using GLEW %s", renderer_glew_version);
+    Log("GLAD: OpenGL %d.%d", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
 #endif
 
     renderer_opengl_version = (const char*)glGetString(GL_VERSION);
@@ -79,6 +81,7 @@ void renderer_init(void)
     init_ogl_debug();
 
     first_frame = true;
+    return true;
 }
 
 void renderer_destroy(void)

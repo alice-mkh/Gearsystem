@@ -31,32 +31,32 @@ Don't hesitate to report bugs or ask for new features by [opening an issue](http
     <tr>
       <td rowspan="2"><strong>Windows</strong></td>
       <td>x64</td>
-      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.2/Gearsystem-3.8.2-windows-x64.zip">Gearsystem-3.8.2-windows-x64.zip</a></td>
+      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.3/Gearsystem-3.8.3-windows-x64.zip">Gearsystem-3.8.3-windows-x64.zip</a></td>
       <td rowspan="2">May need <a href="https://go.microsoft.com/fwlink/?LinkId=746572">Visual C++ Redistributable</a> and <a href="https://apps.microsoft.com/detail/9nqpsl29bfff">OpenGL Compatibility Pack</a></td>
     </tr>
     <tr>
       <td>ARM64</td>
-      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.2/Gearsystem-3.8.2-windows-arm64.zip">Gearsystem-3.8.2-windows-arm64.zip</a></td>
+      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.3/Gearsystem-3.8.3-windows-arm64.zip">Gearsystem-3.8.3-windows-arm64.zip</a></td>
     </tr>
     <tr>
       <td rowspan="2"><strong>macOS</strong></td>
       <td>Apple Silicon</td>
-      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.2/Gearsystem-3.8.2-macos-arm.zip">Gearsystem-3.8.2-macos-arm.zip</a></td>
+      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.3/Gearsystem-3.8.3-macos-arm.zip">Gearsystem-3.8.3-macos-arm.zip</a></td>
       <td rowspan="2"></td>
     </tr>
     <tr>
       <td>Intel</td>
-      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.2/Gearsystem-3.8.2-macos-intel.zip">Gearsystem-3.8.2-macos-intel.zip</a></td>
+      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.3/Gearsystem-3.8.3-macos-intel.zip">Gearsystem-3.8.3-macos-intel.zip</a></td>
     </tr>
     <tr>
       <td rowspan="2"><strong>Linux</strong></td>
       <td>Ubuntu 24.04</td>
-      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.2/Gearsystem-3.8.2-ubuntu-24.04.zip">Gearsystem-3.8.2-ubuntu-24.04.zip</a></td>
-      <td rowspan="2">May need <code>libsdl2</code> and <code>libglew</code></td>
+      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.3/Gearsystem-3.8.3-ubuntu-24.04.zip">Gearsystem-3.8.3-ubuntu-24.04.zip</a></td>
+      <td rowspan="2">May need <code>libsdl2</code></td>
     </tr>
     <tr>
       <td>Ubuntu 22.04</td>
-      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.2/Gearsystem-3.8.2-ubuntu-22.04.zip">Gearsystem-3.8.2-ubuntu-22.04.zip</a></td>
+      <td><a href="https://github.com/drhelius/Gearsystem/releases/download/3.8.3/Gearsystem-3.8.3-ubuntu-22.04.zip">Gearsystem-3.8.3-ubuntu-22.04.zip</a></td>
     </tr>
     <tr>
       <td><strong>RetroArch</strong></td>
@@ -149,7 +149,7 @@ make dist
 - Ubuntu / Debian / Raspberry Pi (Raspbian):
 
 ``` shell
-sudo apt install build-essential libsdl2-dev libglew-dev libgtk-3-dev
+sudo apt install build-essential libsdl2-dev libgtk-3-dev
 cd platforms/linux
 make
 ```
@@ -157,7 +157,7 @@ make
 - Fedora:
 
 ``` shell
-sudo dnf install @development-tools gcc-c++ SDL2-devel glew-devel gtk3-devel
+sudo dnf install @development-tools gcc-c++ SDL2-devel gtk3-devel
 cd platforms/linux
 make
 ```
@@ -165,7 +165,7 @@ make
 - Arch Linux:
 
 ``` shell
-sudo pacman -S base-devel sdl2 glew gtk3
+sudo pacman -S base-devel sdl2 gtk3
 cd platforms/linux
 make
 ```
@@ -175,7 +175,7 @@ make
 - FreeBSD:
 
 ``` shell
-su root -c "pkg install -y git gmake pkgconf SDL2 glew lang/gcc gtk3"
+su root -c "pkg install -y git gmake pkgconf SDL2 lang/gcc gtk3"
 cd platforms/bsd
 gmake
 ```
@@ -183,7 +183,7 @@ gmake
 - NetBSD:
 
 ``` shell
-su root -c "pkgin install gmake pkgconf SDL2 glew lang/gcc gtk3"
+su root -c "pkgin install gmake pkgconf SDL2 lang/gcc gtk3"
 cd platforms/bsd
 gmake
 ```

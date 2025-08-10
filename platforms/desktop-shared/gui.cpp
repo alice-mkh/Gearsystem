@@ -70,6 +70,7 @@ static void file_dialog_save_screenshot(void);
 static void file_dialog_set_native_window(SDL_Window* window, nfdwindowhandle_t* native_window);
 static void keyboard_configuration_item(const char* text, SDL_Scancode* key, int player);
 static void gamepad_configuration_item(const char* text, int* button, int player);
+static void gamepad_device_selector(int player);
 static void popup_modal_keyboard();
 static void popup_modal_gamepad(int pad);
 static void popup_modal_about(void);
@@ -88,11 +89,12 @@ static Cartridge::CartridgeRegions get_region(int index);
 static void set_style(void);
 static ImVec4 lerp(const ImVec4& a, const ImVec4& b, float t);
 
-void gui_init(void)
+bool gui_init(void)
 {
     if (NFD_Init() != NFD_OKAY)
     {
         Log("Error: %s", NFD_GetError());
+        return false;
     }
 
     IMGUI_CHECKVERSION();
@@ -149,6 +151,8 @@ void gui_init(void)
     emu_enable_paddle(config_emulator.paddle_control);
 
     gui_debug_memory_init();
+
+    return true;
 }
 
 void gui_destroy(void)
@@ -258,7 +262,7 @@ void gui_shortcut(gui_ShortCutEvent event)
             gui_debug_memory_paste();
         break;
     case gui_ShortcutShowMainMenu:
-        config_emulator.show_menu = !config_emulator.show_menu;
+        config_emulator.always_show_menu = !config_emulator.always_show_menu;
         break;
     default:
         break;
@@ -321,11 +325,7 @@ void gui_load_rom(const char* path)
     }
 
     if (!emu_is_empty())
-    {
-        char title[256];
-        snprintf(title, 256, "%s %s - %s", GEARSYSTEM_TITLE, GEARSYSTEM_VERSION, emu_get_core()->GetCartridge()->GetFileName());
-        application_update_title(title);
-    }
+        application_update_title_with_rom(emu_get_core()->GetCartridge()->GetFileName());
 }
 
 void gui_set_status_message(const char* message, u32 milliseconds)
@@ -359,7 +359,7 @@ static void main_menu(void)
 
     gui_main_menu_hovered = false;
 
-    if (config_emulator.show_menu && ImGui::BeginMainMenuBar())
+    if (application_show_menu && ImGui::BeginMainMenuBar())
     {
         gui_main_menu_hovered = ImGui::IsWindowHovered();
 
@@ -766,7 +766,14 @@ static void main_menu(void)
             }
 
             gui_event_get_shortcut_string(shortcut, sizeof(shortcut), gui_ShortcutShowMainMenu);
-            ImGui::MenuItem("Show Menu", shortcut, &config_emulator.show_menu);
+            ImGui::MenuItem("Always Show Menu", shortcut, &config_emulator.always_show_menu);
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::BeginTooltip();
+                ImGui::Text("This option will enable menu even in fullscreen.");
+                ImGui::Text("Menu always shows in debug mode.");
+                ImGui::EndTooltip();
+            }
 
             if (ImGui::MenuItem("Resize Window to Content"))
             {
@@ -913,6 +920,12 @@ static void main_menu(void)
                 {
                     ImGui::MenuItem("Enable Gamepad P1", "", &config_input[0].gamepad);
 
+                    if (ImGui::BeginMenu("Device"))
+                    {
+                        gamepad_device_selector(0);
+                        ImGui::EndMenu();
+                    }
+
                     if (ImGui::BeginMenu("Directional Controls"))
                     {
                         ImGui::PushItemWidth(150.0f);
@@ -938,6 +951,12 @@ static void main_menu(void)
                 if (ImGui::BeginMenu("Player 2"))
                 {
                     ImGui::MenuItem("Enable Gamepad P2", "", &config_input[1].gamepad);
+
+                    if (ImGui::BeginMenu("Device"))
+                    {
+                        gamepad_device_selector(1);
+                        ImGui::EndMenu();
+                    }
 
                     if (ImGui::BeginMenu("Directional Controls"))
                     {
@@ -1262,7 +1281,7 @@ static void main_window(void)
     emu_get_runtime(runtime);
 
     int w = (int)ImGui::GetIO().DisplaySize.x;
-    int h = (int)ImGui::GetIO().DisplaySize.y - (config_emulator.show_menu ? main_menu_height : 0);
+    int h = (int)ImGui::GetIO().DisplaySize.y - (application_show_menu ? main_menu_height : 0);
 
     int selected_ratio = config_debug.debug ? 0 : config_video.ratio;
     float ratio = (float)runtime.screen_width / (float)runtime.screen_height;
@@ -1348,7 +1367,7 @@ static void main_window(void)
     else
     {
         int window_x = (w - (w_corrected * scale_multiplier)) / 2;
-        int window_y = ((h - (h_corrected * scale_multiplier)) / 2) + (config_emulator.show_menu ? main_menu_height : 0);
+        int window_y = ((h - (h_corrected * scale_multiplier)) / 2) + (application_show_menu ? main_menu_height : 0);
 
         ImGui::SetNextWindowSize(ImVec2((float)main_window_width, (float)main_window_height));
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos + ImVec2((float)window_x, (float)window_y));
@@ -1713,6 +1732,72 @@ static void gamepad_configuration_item(const char* text, int* button, int player
     }
 }
 
+static void gamepad_device_selector(int player)
+{
+    if (player < 0 || player >= GS_MAX_GAMEPADS)
+        return;
+
+    const int max_detected_gamepads = 32;
+    int index_map[max_detected_gamepads];
+    index_map[0] = -1;
+    int count = 1;
+
+    std::string items;
+    items.reserve(4096);
+    items.append("<None>");
+    items.push_back('\0');
+
+    int num = SDL_NumJoysticks();
+
+    SDL_JoystickID current_id = -1;
+    if (IsValidPointer(application_gamepad[player]))
+        current_id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(application_gamepad[player]));
+
+    int selected = 0;
+
+    for (int i = 0; i < num && count < max_detected_gamepads; i++)
+    {
+        if (!SDL_IsGameController(i))
+            continue;
+
+        const char* name = SDL_GameControllerNameForIndex(i);
+        if (!IsValidPointer(name))
+            name = "Unknown Gamepad";
+
+        index_map[count] = i;
+
+        SDL_JoystickID id = SDL_JoystickGetDeviceInstanceID(i);
+
+        if (current_id == id)
+            selected = count;
+
+        char id_str[64];
+        SDL_JoystickGUID guid = SDL_JoystickGetDeviceGUID(i);
+        SDL_JoystickGetGUIDString(guid, id_str, sizeof(id_str));
+        size_t len = strlen(id_str);
+        const char* id_8 = id_str + (len > 8 ? len - 8 : 0);
+
+        char label[192];
+        snprintf(label, sizeof(label), "%s (ID: %s)", name, id_8);
+
+        items.append(label);
+        items.push_back('\0');
+        count++;
+    }
+
+    items.push_back('\0');
+
+    char label[32];
+    snprintf(label, sizeof(label), "##device_player%d", player + 1);
+
+    if (ImGui::Combo(label, &selected, items.c_str()))
+    {
+        int device_index = index_map[selected];
+        application_assign_gamepad(player, device_index);
+    }
+}
+
+
 static void popup_modal_keyboard()
 {
     if (ImGui::BeginPopupModal("Keyboard Configuration", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -1850,9 +1935,6 @@ static void popup_modal_about(void)
                 ImGui::Text("SDL %d.%d.%d (build)", application_sdl_build_version.major, application_sdl_build_version.minor, application_sdl_build_version.patch);
                 ImGui::Text("SDL %d.%d.%d (link) ", application_sdl_link_version.major, application_sdl_link_version.minor, application_sdl_link_version.patch);
                 ImGui::Text("OpenGL %s", renderer_opengl_version);
-                #if !defined(__APPLE__)
-                ImGui::Text("GLEW %s", renderer_glew_version);
-                #endif
                 ImGui::Text("Dear ImGui %s (%d)", IMGUI_VERSION, IMGUI_VERSION_NUM);
 
                 #if defined(DEBUG)
@@ -2050,7 +2132,7 @@ static void show_status_message(void)
 
     if (status_message_active)
     {
-        ImGui::SetNextWindowPos(ImVec2(0.0f, config_emulator.show_menu ? main_menu_height : 0.0f));
+        ImGui::SetNextWindowPos(ImVec2(0.0f, application_show_menu ? main_menu_height : 0.0f));
         ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 0.0f));
         ImGui::SetNextWindowBgAlpha(0.9f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
