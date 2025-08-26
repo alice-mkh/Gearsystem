@@ -1,6 +1,10 @@
+#include <gearsystem.h>
+#undef MIN
+#undef MAX
+#undef CLAMP
+
 #include "gearsystem-highscore.h"
 
-#include <gearsystem.h>
 #include <math.h>
 
 HsCore *core;
