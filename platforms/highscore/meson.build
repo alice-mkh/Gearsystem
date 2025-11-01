@@ -1,5 +1,5 @@
 project('gearsystem-highscore', ['c', 'cpp'],
-  version : '3.8.4',
+  version : '3.8.5',
   default_options : [
     'warning_level=3',
     'cpp_std=c++11'
