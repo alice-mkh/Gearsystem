@@ -539,6 +539,7 @@ static void main_menu(void)
                     "Korean BFFC\0"
                     "Korean FFF3 FFFC\0"
                     "Korean MD FFF5\0"
+                    "Korean MD FFF0\0"
                     "Jumbo Dahjee\0\0");
                 ImGui::PopItemWidth();
                 ImGui::EndMenu();
@@ -619,6 +620,7 @@ static void main_menu(void)
             ImGui::Separator();
 
             ImGui::MenuItem("Start Paused", "", &config_emulator.start_paused);
+            ImGui::MenuItem("Pause When Inactive", "", &config_emulator.pause_when_inactive);
             
             ImGui::Separator();
 
@@ -2264,6 +2266,8 @@ static Cartridge::CartridgeTypes get_mapper(int index)
         case 18:
             return Cartridge::CartridgeKoreanMDFFF5Mapper;
         case 19:
+            return Cartridge::CartridgeKoreanMDFFF0Mapper;
+        case 20:
             return Cartridge::CartridgeJumboDahjeeMapper;
         default:
             return Cartridge::CartridgeNotSupported;
