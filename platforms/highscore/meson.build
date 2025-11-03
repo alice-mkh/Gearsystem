@@ -15,6 +15,7 @@ gearsystem_source = [
   '../../src/BootromMemoryRule.cpp',
   '../../src/Cartridge.cpp',
   '../../src/CodemastersMemoryRule.cpp',
+  '../../src/Eeprom93C46MemoryRule.cpp',
   '../../src/GameGearIOPorts.cpp',
   '../../src/GearsystemCore.cpp',
   '../../src/Input.cpp',
