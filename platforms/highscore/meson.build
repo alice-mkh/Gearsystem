@@ -47,6 +47,7 @@ gearsystem_source = [
   '../../src/SegaMemoryRule.cpp',
   '../../src/SG1000MemoryRule.cpp',
   '../../src/SmsIOPorts.cpp',
+  '../../src/VgmRecorder.cpp',
   '../../src/Video.cpp',
   '../../src/YM2413.cpp',
   '../../src/audio/Blip_Buffer.cpp',
