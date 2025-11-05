@@ -13,7 +13,6 @@ SOURCES_CXX := \
     $(DESKTOP_SRC_DIR)/gui_debug.cpp \
     $(DESKTOP_SRC_DIR)/gui_debug_memory.cpp \
     $(DESKTOP_SRC_DIR)/gui_debug_memeditor.cpp \
-    $(DESKTOP_SRC_DIR)/gui_events.cpp \
     $(DESKTOP_SRC_DIR)/application.cpp \
     $(DESKTOP_SRC_DIR)/config.cpp \
     $(DESKTOP_SRC_DIR)/renderer.cpp \
@@ -61,6 +60,7 @@ SOURCES_CXX := \
     $(SRC_DIR)/BootromMemoryRule.cpp \
     $(SRC_DIR)/JanggunMemoryRule.cpp \
     $(SRC_DIR)/YM2413.cpp \
+    $(SRC_DIR)/VgmRecorder.cpp \
     $(SRC_DIR)/audio/Blip_Buffer.cpp \
     $(SRC_DIR)/audio/Sms_Apu.cpp \
     $(SRC_DIR)/audio/Stereo_Buffer.cpp \
