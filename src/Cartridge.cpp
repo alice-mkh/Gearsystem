@@ -23,6 +23,7 @@
 #include "Cartridge.h"
 #include "miniz/miniz.h"
 #include "log.h"
+#include "common.h"
 
 Cartridge::Cartridge()
 {
@@ -34,9 +35,11 @@ Cartridge::Cartridge()
     m_bReady = false;
     m_szFilePath[0] = 0;
     m_szFileName[0] = 0;
+    m_szFileNameInZip[0] = 0;
     m_iROMBankCount16k = 0;
     m_iROMBankCount8k = 0;
     m_bGameGear = false;
+    m_bGameGearInSMSMode = false;
     m_bSG1000 = false;
     m_bPAL = false;
     m_bRAMWithoutBattery = false;
@@ -64,9 +67,11 @@ void Cartridge::Reset()
     m_bReady = false;
     m_szFilePath[0] = 0;
     m_szFileName[0] = 0;
+    m_szFileNameInZip[0] = 0;
     m_iROMBankCount16k = 0;
     m_iROMBankCount8k = 0;
     m_bGameGear = false;
+    m_bGameGearInSMSMode = false;
     m_bSG1000 = false;
     m_bPAL = false;
     m_bRAMWithoutBattery = false;
@@ -83,6 +88,11 @@ u32 Cartridge::GetCRC() const
 bool Cartridge::IsGameGear() const
 {
     return m_bGameGear;
+}
+
+bool Cartridge::IsGameGearInSMSMode() const
+{
+    return m_bGameGearInSMSMode;
 }
 
 bool Cartridge::IsSG1000() const
@@ -121,11 +131,6 @@ Cartridge::CartridgeZones Cartridge::GetZone() const
 
 void Cartridge::ForceConfig(Cartridge::ForceConfiguration config)
 {
-    std::string fn(m_szFileName);
-    std::string extension = fn.substr(fn.find_last_of(".") + 1);
-    m_bGameGear = (extension == "gg");
-    m_bSG1000 = (extension == "sg" || extension == "mv");
-
     m_iCRC = CalculateCRC32(0, m_pROM, m_iROMSize);
     GatherMetadata(m_iCRC);
 
@@ -252,6 +257,10 @@ void Cartridge::ForceConfig(Cartridge::ForceConfiguration config)
             m_Type = config.type;
             Log("Forcing Mapper: Jumbo Dahjee");
             break;
+        case Cartridge::CartridgeEeprom93C46Mapper:
+            m_Type = config.type;
+            Log("Forcing Mapper: EEPROM 93C46");
+            break;
         default:
             Log("Not forcing Mapper: Auto");
             break;
@@ -353,8 +362,8 @@ bool Cartridge::LoadFromZipFile(const u8* buffer, int size)
 
         if ((extension == "sms") || (extension == "gg") || (extension == "sg") || (extension == "mv"))
         {
-            m_bGameGear = (extension == "gg");
-            m_bSG1000 = (extension == "sg" || extension == "mv");
+            strncpy(m_szFileNameInZip, file_stat.m_filename, 511);
+            m_szFileNameInZip[511] = 0;
 
             void *p;
             size_t uncomp_size;
@@ -388,7 +397,8 @@ bool Cartridge::LoadFromFile(const char* path)
 
     SetROMPath(path);
 
-    ifstream file(path, ios::in | ios::binary | ios::ate);
+    ifstream file;
+    open_ifstream_utf8(file, path, ios::in | ios::binary | ios::ate);
 
     if (file.is_open())
     {
@@ -409,8 +419,6 @@ bool Cartridge::LoadFromFile(const char* path)
         }
         else
         {
-            m_bGameGear = (extension == "gg");
-            m_bSG1000= (extension == "sg" || extension == "mv");
             m_bReady = LoadFromBuffer(reinterpret_cast<u8*> (memblock), size);
         }
 
@@ -523,6 +531,13 @@ void Cartridge::SetROMPath(const char* path)
 
 bool Cartridge::GatherMetadata(u32 crc)
 {
+    const char* filename_to_check = (m_szFileNameInZip[0] != 0) ? m_szFileNameInZip : m_szFileName;
+    std::string fn(filename_to_check);
+    std::string extension = fn.substr(fn.find_last_of(".") + 1);
+
+    m_bGameGear = (extension == "gg");
+    m_bSG1000 = (extension == "sg" || extension == "mv");
+
     m_bPAL = false;
 
     u16 headerLocation = 0x7FF0;
@@ -673,6 +688,9 @@ bool Cartridge::GatherMetadata(u32 crc)
         case Cartridge::CartridgeJumboDahjeeMapper:
             Log("Jumbo Dahjee mapper found");
             break;
+        case Cartridge::CartridgeEeprom93C46Mapper:
+            Log("EEPROM 93C46 mapper found");
+            break;
         case Cartridge::CartridgeNotSupported:
             Log("Cartridge not supported!!");
             break;
@@ -771,12 +789,16 @@ void Cartridge::GetInfoFromDB(u32 crc)
                 case GS_DB_JUMBO_DAHJEE_MAPPER:
                     m_Type = Cartridge::CartridgeJumboDahjeeMapper;
                     break;
+                case GS_DB_EEPROM_93C46_MAPPER:
+                    m_Type = Cartridge::CartridgeEeprom93C46Mapper;
+                    break;
             }
 
             if (kGameDatabase[i].features & GS_DB_FEATURE_SMS_MODE)
             {
                 Log("Forcing Master System mode");
                 m_bGameGear = false;
+                m_bGameGearInSMSMode = true;
             }
 
             if (kGameDatabase[i].features & GS_DB_FEATURE_PAL)
