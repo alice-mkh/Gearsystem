@@ -94,6 +94,7 @@ gearsystem_hs_core_reset (HsCore *core, gboolean hard, GError **errr)
 
   self->core->EnablePhaser (self->enable_light_phaser);
   self->core->EnablePaddle (false);
+  self->core->GetAudio ()->DisableYM2413 (!self->enable_fm_audio);
 
   return TRUE;
 }
@@ -309,6 +310,8 @@ gearsystem_hs_core_load_state (HsCore          *core,
     return;
   }
 
+  self->core->GetAudio ()->DisableYM2413 (!self->enable_fm_audio);
+
   state_file.close ();
   callback (core, NULL);
 }
@@ -425,8 +428,6 @@ gearsystem_master_system_core_set_enable_fm_audio (HsMasterSystemCore *core,
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
   self->enable_fm_audio = enable_fm_audio;
-
-  self->core->GetAudio ()->DisableYM2413 (!self->enable_fm_audio);
 }
 
 static void
