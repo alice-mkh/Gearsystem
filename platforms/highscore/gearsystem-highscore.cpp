@@ -431,21 +431,21 @@ gearsystem_master_system_core_set_enable_fm_audio (HsMasterSystemCore *core,
 }
 
 static void
-gearsystem_master_system_core_set_enable_light_phaser (HsMasterSystemCore *core,
-                                                       gboolean            enable_light_phaser)
+gearsystem_master_system_core_set_accessory (HsMasterSystemCore      *core,
+                                             HsMasterSystemAccessory  accessory)
 {
   GearsystemHsCore *self = GEARSYSTEM_HS_CORE (core);
 
-  self->enable_light_phaser = enable_light_phaser;
+  self->enable_light_phaser = accessory == HS_MASTER_SYSTEM_ACCESSORY_LIGHT_PHASER;
 
-  self->core->EnablePhaser (enable_light_phaser);
+  self->core->EnablePhaser (accessory == HS_MASTER_SYSTEM_ACCESSORY_LIGHT_PHASER);
 }
 
 static void
 gearsystem_master_system_core_init (HsMasterSystemCoreInterface *iface)
 {
   iface->set_enable_fm_audio = gearsystem_master_system_core_set_enable_fm_audio;
-  iface->set_enable_light_phaser = gearsystem_master_system_core_set_enable_light_phaser;
+  iface->set_accessory = gearsystem_master_system_core_set_accessory;
 }
 
 static void
